@@ -5,7 +5,6 @@ import 'tema/colores_app.dart';
 
 void main() => runApp(const AplicacionSire());
 
-/// App raíz. Sólo registra el tema y arranca en S1 (inicio de sesión).
 class AplicacionSire extends StatelessWidget {
   const AplicacionSire({super.key});
 

@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 
 import '../tema/colores_app.dart';
 
@@ -41,34 +42,64 @@ class EtiquetaCampo extends StatelessWidget {
   }
 }
 
-/// Campo de texto con valor de ejemplo. [etiqueta] muestra una etiqueta azul al final.
+/// Campo de texto que acepta valor inicial o texto de ayuda. [etiqueta]
+/// muestra una etiqueta azul al final.
 class CampoTextoSire extends StatelessWidget {
-  final String valorInicial;
+  final Key? fieldKey;
+  final TextEditingController? controller;
+  final ValueChanged<String>? onChanged;
+  final String? valorInicial;
+  final String? hintText;
   final bool ocultarTexto;
   final String? etiqueta;
+  final FormFieldValidator<String>? validator;
+  final TextInputType keyboardType;
+  final int maxLines;
+  final List<TextInputFormatter>? inputFormatters;
 
   const CampoTextoSire({
     super.key,
-    required this.valorInicial,
+    this.fieldKey,
+    this.controller,
+    this.onChanged,
+    this.valorInicial,
+    this.hintText,
     this.ocultarTexto = false,
     this.etiqueta,
-  });
+    this.validator,
+    this.keyboardType = TextInputType.text,
+    this.maxLines = 1,
+    this.inputFormatters,
+  }) : assert(controller == null || valorInicial == null),
+       assert(valorInicial == null || hintText == null);
 
   @override
   Widget build(BuildContext context) {
     return TextFormField(
-      initialValue: valorInicial,
+      key: fieldKey,
+      controller: controller,
+      initialValue: controller == null ? valorInicial : null,
+      onChanged: onChanged,
       obscureText: ocultarTexto,
+      validator: validator,
+      keyboardType: keyboardType,
+      maxLines: maxLines,
+      inputFormatters: inputFormatters,
       style: const TextStyle(fontSize: 18, color: ColoresApp.tinta),
       decoration: InputDecoration(
+        hintText: hintText,
         isDense: true,
-        contentPadding:
-            const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+        contentPadding: const EdgeInsets.symmetric(
+          horizontal: 16,
+          vertical: 16,
+        ),
         suffix: etiqueta == null
             ? null
             : Container(
-                padding:
-                    const EdgeInsets.symmetric(horizontal: 10, vertical: 3),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 10,
+                  vertical: 3,
+                ),
                 decoration: BoxDecoration(
                   color: ColoresApp.azulClaro,
                   borderRadius: BorderRadius.circular(12),
@@ -123,7 +154,8 @@ class ChipOpcion extends StatelessWidget {
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
-          if (seleccionado) const Icon(Icons.check, size: 18, color: Colors.white),
+          if (seleccionado)
+            const Icon(Icons.check, size: 18, color: Colors.white),
           if (seleccionado) const SizedBox(width: 6),
           Text(
             etiqueta,

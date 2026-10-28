@@ -4,13 +4,14 @@ import '../tema/colores_app.dart';
 import '../componentes/widgets_comunes.dart';
 import '../componentes/widgets_formulario.dart';
 import '../componentes/barra_superior.dart';
+import '../modelos/reporte_servicio.dart';
 import 'pantalla_reporte.dart';
 
-/// S4 · Bitácora en tiempo real (perfil Central).
-///
-/// Sólo interfaz: la cronología es fija. El botón "Reporte" abre S8.
+/// S4 · Bitácora compartida del servicio.
 class PantallaBitacora extends StatelessWidget {
-  const PantallaBitacora({super.key});
+  const PantallaBitacora({super.key, required this.reporte});
+
+  final ReporteServicio reporte;
 
   @override
   Widget build(BuildContext context) {
@@ -20,73 +21,46 @@ class PantallaBitacora extends StatelessWidget {
         child: Column(
           children: [
             BarraSuperiorSire(
-              titulo: 'Bitácora · 0154',
+              titulo: 'Bitácora · ${reporte.folioVisible}',
               mostrarAtras: true,
               widgetFinal: BotonBarraSuperior(
                 etiqueta: 'Reporte',
                 alPresionar: () {
                   Navigator.of(context).push(
-                    MaterialPageRoute(builder: (_) => const PantallaReporte(esCentral: true)), 
+                    MaterialPageRoute(
+                      builder: (_) =>
+                          PantallaReporte(reporte: reporte, esCentral: true),
+                    ),
                   );
                 },
               ),
             ),
-            const Expanded(
+            Expanded(
               child: SingleChildScrollView(
-                padding: EdgeInsets.all(20),
+                padding: const EdgeInsets.all(20),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: [
-                    EtiquetaRol.central(),
-                    SizedBox(height: 16),
-                    _TarjetaResumen(),
-                    SizedBox(height: 20),
-                    EtiquetaSeccion('CRONOLOGÍA (tiempo real)'),
-                    SizedBox(height: 14),
-                    _ItemCronologia(
-                      hora: '14:32',
-                      titulo: 'Alerta enviada',
-                      subtitulo: 'Central',
-                      completado: true,
-                    ),
-                    _ItemCronologia(
-                      hora: '14:34',
-                      titulo: 'Salida de base',
-                      subtitulo: 'Unidad A-03',
-                      completado: true,
-                    ),
-                    _ItemCronologia(
-                      hora: '14:47',
-                      titulo: 'Llegada al lugar',
-                      subtitulo: 'Unidad A-03',
-                      completado: true,
-                    ),
-                    _ItemCronologia(
-                      hora: '14:50',
-                      titulo: 'Inicio de atención',
-                      subtitulo: 'Unidad A-03',
-                      completado: true,
-                    ),
-                    _ItemCronologia(
-                      hora: '--:--',
-                      titulo: 'Salida del lugar / traslado',
-                      subtitulo: 'Pendiente',
-                      completado: false,
-                    ),
-                    _ItemCronologia(
-                      hora: '--:--',
-                      titulo: 'Fin del servicio',
-                      subtitulo: 'Pendiente',
-                      completado: false,
-                      esUltimo: true,
-                    ),
-                    SizedBox(height: 8),
-                    CajaInfo(
-                      'Los tiempos llegan solos desde la unidad: ya no se '
-                      'transcriben de la radio.',
-                      fondo: ColoresApp.azulClaro,
-                      colorTexto: ColoresApp.azul,
-                    ),
+                    const EtiquetaRol.central(),
+                    const SizedBox(height: 16),
+                    _TarjetaResumen(reporte: reporte),
+                    const SizedBox(height: 20),
+                    const EtiquetaSeccion('CRONOLOGÍA (tiempo real)'),
+                    const SizedBox(height: 14),
+                    for (
+                      var indice = 0;
+                      indice < reporte.cronologia.length;
+                      indice++
+                    )
+                      _ItemCronologia(
+                        hora: reporte.cronologia[indice].hora,
+                        titulo: reporte.cronologia[indice].titulo,
+                        subtitulo: reporte.cronologia[indice].completado
+                            ? reporte.cronologia[indice].detalle
+                            : 'Pendiente',
+                        completado: reporte.cronologia[indice].completado,
+                        esUltimo: indice == reporte.cronologia.length - 1,
+                      ),
                   ],
                 ),
               ),
@@ -99,7 +73,9 @@ class PantallaBitacora extends StatelessWidget {
 }
 
 class _TarjetaResumen extends StatelessWidget {
-  const _TarjetaResumen();
+  const _TarjetaResumen({required this.reporte});
+
+  final ReporteServicio reporte;
 
   @override
   Widget build(BuildContext context) {
@@ -112,45 +88,41 @@ class _TarjetaResumen extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Text(
-            'Accidente vehicular',
-            style: TextStyle(
+          Text(
+            '${reporte.subcategoria} · ${reporte.categoria}',
+            style: const TextStyle(
               fontSize: 20,
               fontWeight: FontWeight.bold,
               color: ColoresApp.tinta,
             ),
           ),
           const SizedBox(height: 4),
-          const Text(
-            'Unidad A-03 · Carr. SMA–Dolores km 12',
-            style: TextStyle(fontSize: 14, color: ColoresApp.atenuado),
+          Text(
+            '${reporte.folioVisible} · ${reporte.unidadesTexto} · ${reporte.ubicacion}',
+            style: const TextStyle(fontSize: 14, color: ColoresApp.atenuado),
           ),
           const SizedBox(height: 10),
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Container(
-                padding:
-                    const EdgeInsets.symmetric(horizontal: 12, vertical: 5),
-                decoration: BoxDecoration(
-                  color: ColoresApp.ambarClaro,
-                  borderRadius: BorderRadius.circular(14),
-                  border: Border.all(color: ColoresApp.ambar, width: 1.5),
-                ),
-                child: const Text(
-                  'EN ATENCIÓN',
-                  style: TextStyle(
-                    fontSize: 12,
-                    fontWeight: FontWeight.bold,
-                    color: ColoresApp.ambarOscuro,
-                  ),
-                ),
+              ChipEstadoAmbar(
+                texto: reporte.estado.toUpperCase(),
+                colorFondo: ColoresApp.ambarClaro,
+                rellenoVertical: 5,
               ),
-              const Text(
-                'Sincronizado 14:50',
-                style: TextStyle(fontSize: 13, color: ColoresApp.atenuado),
+              Text(
+                'Prioridad ${reporte.prioridad}',
+                style: const TextStyle(
+                  fontSize: 13,
+                  color: ColoresApp.atenuado,
+                ),
               ),
             ],
+          ),
+          const SizedBox(height: 8),
+          Text(
+            'Personal: ${reporte.personalTexto.isEmpty ? 'No especificado' : reporte.personalTexto}',
+            style: const TextStyle(fontSize: 13, color: ColoresApp.atenuado),
           ),
         ],
       ),
@@ -222,14 +194,17 @@ class _ItemCronologia extends StatelessWidget {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   SizedBox(
-                    width: 64,
+                    width: 76,
                     child: Text(
                       hora,
                       style: TextStyle(
-                        fontSize: 17,
-                        fontWeight:
-                            completado ? FontWeight.bold : FontWeight.normal,
-                        color: completado ? ColoresApp.tinta : ColoresApp.atenuado,
+                        fontSize: 16,
+                        fontWeight: completado
+                            ? FontWeight.bold
+                            : FontWeight.normal,
+                        color: completado
+                            ? ColoresApp.tinta
+                            : ColoresApp.atenuado,
                       ),
                     ),
                   ),
@@ -241,9 +216,12 @@ class _ItemCronologia extends StatelessWidget {
                           titulo,
                           style: TextStyle(
                             fontSize: 16,
-                            fontWeight:
-                                completado ? FontWeight.bold : FontWeight.normal,
-                            color: completado ? ColoresApp.tinta : ColoresApp.atenuado,
+                            fontWeight: completado
+                                ? FontWeight.bold
+                                : FontWeight.normal,
+                            color: completado
+                                ? ColoresApp.tinta
+                                : ColoresApp.atenuado,
                           ),
                         ),
                         Text(

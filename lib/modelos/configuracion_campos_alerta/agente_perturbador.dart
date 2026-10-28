@@ -1,0 +1,131 @@
+part of '../configuracion_campos_alerta.dart';
+
+const Map<String, List<CampoAlerta>> _camposAgentePerturbador = {
+  'Sismo': [
+    CampoAlerta.hora('hora', 'Hora aproximada del evento', opcional: true),
+    CampoAlerta.texto('zona', 'Zona afectada'),
+    CampoAlerta.seleccion('danos_estructurales', 'Daño estructural observado', [
+      'Ninguno aparente',
+      'Leve',
+      'Moderado',
+      'Severo',
+      'Desconocido',
+    ]),
+    CampoAlerta.siNo('personas', '¿Hay personas atrapadas o lesionadas?'),
+    CampoAlerta.siNo('derrumbes', '¿Se reportan derrumbes adicionales?'),
+    CampoAlerta.siNo('servicios', '¿Hay servicios interrumpidos?'),
+    CampoAlerta.texto(
+      'descripcion_danos',
+      'Descripción de daños',
+      largo: true,
+      opcional: true,
+    ),
+  ],
+  'Suelo inestable': [
+    CampoAlerta.seleccion('fenomeno', 'Tipo de fenómeno', [
+      'Deslizamiento',
+      'Hundimiento',
+      'Grieta',
+      'Derrumbe',
+      'Otro',
+    ]),
+    CampoAlerta.texto('ubicacion', 'Ubicación y extensión observada'),
+    CampoAlerta.siNo(
+      'infraestructura',
+      '¿Hay viviendas o infraestructura amenazadas?',
+    ),
+    CampoAlerta.siNo('personas', '¿Hay personas atrapadas o en riesgo?'),
+    CampoAlerta.siNo('movimiento', '¿Continúa el movimiento del terreno?'),
+    CampoAlerta.texto('danos', 'Daños observados', largo: true, opcional: true),
+  ],
+  'Inundación': [
+    CampoAlerta.seleccion('tipo', 'Tipo de inundación', [
+      'Pluvial',
+      'Fluvial',
+      'Desbordamiento',
+      'Ingreso a inmueble',
+      'Otra',
+      'Desconocida',
+    ]),
+    CampoAlerta.texto('zona', 'Zona afectada'),
+    CampoAlerta.cantidad(
+      'nivel_agua',
+      'Nivel aproximado del agua',
+      opcional: true,
+      unidad: 'cm',
+      decimal: true,
+    ),
+    CampoAlerta.siNo('personas', '¿Hay personas aisladas o atrapadas?'),
+    CampoAlerta.siNo('vehiculos', '¿Hay vehículos varados?'),
+    CampoAlerta.siNo('vias', '¿Hay vías bloqueadas?'),
+    CampoAlerta.siNo('servicios', '¿Se reportan servicios interrumpidos?'),
+  ],
+  'Tormentas': [
+    CampoAlerta.seleccion('fenomeno', 'Fenómeno reportado', [
+      'Lluvia intensa',
+      'Viento fuerte',
+      'Granizo',
+      'Tormenta eléctrica',
+      'Otro',
+    ]),
+    CampoAlerta.texto('zona', 'Zona afectada'),
+    CampoAlerta.siNo('arboles', '¿Hay árboles o estructuras caídas?'),
+    CampoAlerta.siNo('cables', '¿Hay cables caídos?'),
+    CampoAlerta.siNo('inundaciones', '¿Hay inundaciones?'),
+    CampoAlerta.siNo('lesionadas', '¿Hay personas lesionadas?'),
+    CampoAlerta.texto('danos', 'Daños observados', largo: true, opcional: true),
+  ],
+  'Cables': [
+    CampoAlerta.seleccion('situacion', 'Situación', [
+      'Cable caído',
+      'Cable sobre vehículo',
+      'Cable sobre estructura',
+      'Cable obstruyendo vía',
+      'Otro',
+    ]),
+    CampoAlerta.texto('ubicacion', 'Ubicación exacta o referencia'),
+    CampoAlerta.seleccion('tipo_cable', 'Tipo de cable si se conoce', [
+      'Eléctrico',
+      'Telecomunicaciones',
+      'Desconocido',
+    ]),
+    CampoAlerta.siNo(
+      'contacto',
+      '¿Está en contacto con personas, vehículos o estructuras?',
+    ),
+    CampoAlerta.siNo('chispas', '¿Se reportan chispas o fuego?'),
+    CampoAlerta.siNo('via', '¿Hay vía obstruida?'),
+  ],
+  'Enjambres': [
+    CampoAlerta.seleccion('animal', 'Tipo de animal si se conoce', [
+      'Abejas',
+      'Avispas',
+      'Otro',
+      'Desconocido',
+    ]),
+    CampoAlerta.seleccion('ubicacion', 'Ubicación del enjambre', [
+      'Árbol',
+      'Edificio',
+      'Vivienda',
+      'Vía pública',
+      'Otro',
+    ]),
+    CampoAlerta.seleccion('tamano', 'Cantidad o tamaño estimado', [
+      'Pequeño',
+      'Mediano',
+      'Grande',
+      'Desconocido',
+    ]),
+    CampoAlerta.siNo('ataques', '¿Hay personas atacadas?'),
+    CampoAlerta.cantidad(
+      'lesionadas',
+      'Número de personas lesionadas reportadas',
+      opcional: true,
+      unidad: 'personas',
+    ),
+    CampoAlerta.siNo(
+      'concurrida',
+      '¿Se encuentra cerca de una zona concurrida?',
+    ),
+  ],
+};

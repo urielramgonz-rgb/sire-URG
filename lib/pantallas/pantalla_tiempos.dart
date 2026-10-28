@@ -3,14 +3,19 @@ import 'package:flutter/material.dart';
 import '../tema/colores_app.dart';
 import '../componentes/widgets_comunes.dart';
 import '../componentes/barra_superior.dart';
+import '../modelos/reporte_servicio.dart';
 import 'pantalla_formulario_servicio.dart';
 
-/// S6 · Registro de tiempos (perfil Campo), mostrado sin conexión.
-///
-/// Sólo interfaz: el botón grande no registra nada. La pestaña
-/// FORMULARIO lleva a S7.
+/// S6 · Registro de tiempos para el reporte seleccionado.
 class PantallaTiempos extends StatelessWidget {
-  const PantallaTiempos({super.key});
+  const PantallaTiempos({
+    super.key,
+    required this.reporte,
+    this.etapaFormulario = 0,
+  });
+
+  final ReporteServicio reporte;
+  final int etapaFormulario;
 
   @override
   Widget build(BuildContext context) {
@@ -19,10 +24,10 @@ class PantallaTiempos extends StatelessWidget {
       body: SafeArea(
         child: Column(
           children: [
-            const BarraSuperiorSire(
-              titulo: 'Servicio 0154',
+            BarraSuperiorSire(
+              titulo: 'Servicio ${reporte.folioVisible}',
               mostrarAtras: true,
-              widgetFinal: ChipConexion(enLinea: false),
+              widgetFinal: const ChipConexion(enLinea: false),
             ),
             PestanasServicio(
               indiceActivo: 0,
@@ -30,7 +35,10 @@ class PantallaTiempos extends StatelessWidget {
                 if (indice == 1) {
                   Navigator.of(context).pushReplacement(
                     MaterialPageRoute(
-                      builder: (_) => const PantallaFormularioServicio(),
+                      builder: (_) => PantallaFormularioServicio(
+                        reporte: reporte,
+                        etapaInicial: etapaFormulario,
+                      ),
                     ),
                   );
                 }
@@ -44,26 +52,61 @@ class PantallaTiempos extends StatelessWidget {
                   children: [
                     const EtiquetaRol.campo(),
                     const SizedBox(height: 16),
-                    const _FilaCompletada('Salida de base', '14:34'),
-                    const _FilaCompletada('Llegada al lugar', '14:47'),
-                    const SizedBox(height: 4),
-                    BotonSire(
-                      etiqueta: 'INICIO DE ATENCIÓN',
-                      subEtiqueta: 'Toca para registrar la hora exacta',
-                      color: ColoresApp.verde,
-                      altura: 120,
-                      tamanoFuente: 22,
-                      alPresionar: () {},
+                    Container(
+                      margin: const EdgeInsets.only(bottom: 14),
+                      padding: const EdgeInsets.all(16),
+                      decoration: BoxDecoration(
+                        color: ColoresApp.fondo,
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            '${reporte.categoria} · ${reporte.subcategoria}',
+                            style: const TextStyle(
+                              fontSize: 18,
+                              fontWeight: FontWeight.bold,
+                              color: ColoresApp.tinta,
+                            ),
+                          ),
+                          const SizedBox(height: 4),
+                          Text(
+                            '${reporte.unidadesTexto} · ${reporte.estado}',
+                            style: const TextStyle(
+                              fontSize: 14,
+                              color: ColoresApp.atenuado,
+                            ),
+                          ),
+                          const SizedBox(height: 4),
+                          Text(
+                            reporte.ubicacion,
+                            style: const TextStyle(
+                              fontSize: 14,
+                              color: ColoresApp.atenuado,
+                            ),
+                          ),
+                          const SizedBox(height: 4),
+                          Text(
+                            'Personal: ${reporte.personalTexto.isEmpty ? 'No especificado' : reporte.personalTexto}',
+                            style: const TextStyle(
+                              fontSize: 14,
+                              color: ColoresApp.atenuado,
+                            ),
+                          ),
+                        ],
+                      ),
                     ),
-                    const SizedBox(height: 14),
-                    const _FilaPendiente('Salida del lugar / traslado'),
-                    const _FilaPendiente('Fin del servicio'),
+                    for (final evento in reporte.cronologia)
+                      if (evento.completado)
+                        _FilaCompletada(evento.titulo, evento.hora)
+                      else
+                        _FilaPendiente(evento),
                     const SizedBox(height: 4),
-                    const CajaInfo(
-                      'Sin señal: cada hora se guarda en el teléfono y se '
-                      'envía sola al volver la señal.',
-                      fondo: ColoresApp.ambarClaro,
-                      colorTexto: ColoresApp.ambarOscuro,
+                    CajaInfo(
+                      'Estado del servicio: ${reporte.estado}.',
+                      fondo: ColoresApp.azulClaro,
+                      colorTexto: ColoresApp.azul,
                     ),
                   ],
                 ),
@@ -105,22 +148,13 @@ class _FilaCompletada extends StatelessWidget {
               ),
             ),
           ),
-          Column(
-            crossAxisAlignment: CrossAxisAlignment.end,
-            children: [
-              Text(
-                hora,
-                style: const TextStyle(
-                  fontSize: 22,
-                  fontWeight: FontWeight.bold,
-                  color: ColoresApp.verde,
-                ),
-              ),
-              const Text(
-                'corregir',
-                style: TextStyle(fontSize: 12, color: ColoresApp.atenuado),
-              ),
-            ],
+          Text(
+            hora,
+            style: const TextStyle(
+              fontSize: 22,
+              fontWeight: FontWeight.bold,
+              color: ColoresApp.verde,
+            ),
           ),
         ],
       ),
@@ -129,9 +163,9 @@ class _FilaCompletada extends StatelessWidget {
 }
 
 class _FilaPendiente extends StatelessWidget {
-  final String titulo;
+  final EventoCronologia evento;
 
-  const _FilaPendiente(this.titulo);
+  const _FilaPendiente(this.evento);
 
   @override
   Widget build(BuildContext context) {
@@ -155,13 +189,25 @@ class _FilaPendiente extends StatelessWidget {
           ),
           const SizedBox(width: 12),
           Expanded(
-            child: Text(
-              titulo,
-              style: const TextStyle(fontSize: 16, color: ColoresApp.atenuado),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  evento.titulo,
+                  style: const TextStyle(
+                    fontSize: 16,
+                    color: ColoresApp.atenuado,
+                  ),
+                ),
+                const Text(
+                  'Pendiente',
+                  style: TextStyle(fontSize: 12, color: ColoresApp.atenuado),
+                ),
+              ],
             ),
           ),
-          const Text(
-            '--:--',
+          Text(
+            evento.hora,
             style: TextStyle(fontSize: 17, color: ColoresApp.atenuado),
           ),
         ],

@@ -3,13 +3,14 @@ import 'package:flutter/material.dart';
 import '../tema/colores_app.dart';
 import '../componentes/widgets_comunes.dart';
 import '../componentes/barra_superior.dart';
+import '../modelos/reporte_servicio.dart';
 import 'pantalla_tiempos.dart';
 
-/// S5 · Alerta recibida (perfil Campo / personal operativo).
-///
-/// Sólo interfaz: "ACEPTAR E INICIAR SERVICIO" navega a S6.
+/// Detalle de un servicio recibido para el perfil Campo.
 class PantallaAlertaRecibida extends StatelessWidget {
-  const PantallaAlertaRecibida({super.key});
+  const PantallaAlertaRecibida({super.key, required this.reporte});
+
+  final ReporteServicio reporte;
 
   @override
   Widget build(BuildContext context) {
@@ -18,15 +19,18 @@ class PantallaAlertaRecibida extends StatelessWidget {
       body: SafeArea(
         child: Column(
           children: [
-            const BarraSuperiorSire(titulo: 'Alerta asignada'),
+            BarraSuperiorSire(
+              titulo: 'Servicio ${reporte.folioVisible}',
+              mostrarAtras: true,
+            ),
             Container(
               width: double.infinity,
               color: ColoresApp.rojo,
               padding: const EdgeInsets.symmetric(vertical: 18),
-              child: const Text(
-                'NUEVA ALERTA · PRIORIDAD ALTA',
+              child: Text(
+                reporte.estado.toUpperCase(),
                 textAlign: TextAlign.center,
-                style: TextStyle(
+                style: const TextStyle(
                   color: Colors.white,
                   fontSize: 17,
                   fontWeight: FontWeight.bold,
@@ -41,41 +45,32 @@ class PantallaAlertaRecibida extends StatelessWidget {
                   children: [
                     const EtiquetaRol.campo(),
                     const SizedBox(height: 18),
-                    const _CampoInfo('Servicio', 'Accidente vehicular'),
-                    const _CampoInfo(
-                      'Ubicación',
-                      'Carretera SMA–Dolores, km 12',
+                    _CampoInfo(
+                      'Servicio',
+                      '${reporte.categoria} · ${reporte.subcategoria}',
                     ),
-                    const _CampoInfo('Unidad asignada', 'A-03'),
-                    const _CampoInfo('Hora de la alerta · Folio', '14:32 · 0154'),
+                    _CampoInfo('Ubicación', reporte.ubicacion),
+                    _CampoInfo('Unidad asignada', reporte.unidadesTexto),
+                    _CampoInfo('Folio C4', reporte.folioVisible),
+                    _CampoInfo('Estado', reporte.estado),
                     const SizedBox(height: 12),
-                    const CajaInfo(
-                      'Datos enviados por la central',
+                    CajaInfo(
+                      'Prioridad ${reporte.prioridad} · servicio en curso',
                       fondo: ColoresApp.azulClaro,
                       colorTexto: ColoresApp.azul,
                       alineacion: TextAlign.center,
                     ),
                     const SizedBox(height: 22),
                     BotonSire(
-                      etiqueta: 'ACEPTAR E INICIAR SERVICIO',
+                      etiqueta: 'VER TIEMPOS DEL SERVICIO',
                       color: ColoresApp.verde,
                       alPresionar: () {
                         Navigator.of(context).push(
                           MaterialPageRoute(
-                            builder: (_) => const PantallaTiempos(),
+                            builder: (_) => PantallaTiempos(reporte: reporte),
                           ),
                         );
                       },
-                    ),
-                    const SizedBox(height: 10),
-                    const Center(
-                      child: Text(
-                        'Se guarda la hora de aceptación',
-                        style: TextStyle(
-                          fontSize: 12.5,
-                          color: ColoresApp.atenuado,
-                        ),
-                      ),
                     ),
                   ],
                 ),

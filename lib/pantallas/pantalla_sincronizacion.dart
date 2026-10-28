@@ -36,11 +36,20 @@ class PantallaSincronizacion extends StatelessWidget {
                     SizedBox(height: 22),
                     EtiquetaSeccion('PENDIENTES DE ENVÍO (3)'),
                     SizedBox(height: 10),
-                    _FilaSincronizacion(titulo: '0154 · Tiempos (4)', pendiente: true),
+                    _FilaSincronizacion(
+                      titulo: '0154 · Tiempos (4)',
+                      pendiente: true,
+                    ),
                     SizedBox(height: 10),
-                    _FilaSincronizacion(titulo: '0154 · Formulario', pendiente: true),
+                    _FilaSincronizacion(
+                      titulo: '0154 · Formulario',
+                      pendiente: true,
+                    ),
                     SizedBox(height: 10),
-                    _FilaSincronizacion(titulo: '0154 · Reporte', pendiente: true),
+                    _FilaSincronizacion(
+                      titulo: '0154 · Reporte',
+                      pendiente: true,
+                    ),
                     SizedBox(height: 20),
                     EtiquetaSeccion('ENVIADOS'),
                     SizedBox(height: 10),
@@ -124,7 +133,11 @@ class _FilaSincronizacion extends StatelessWidget {
   final bool pendiente;
   final String? enviadoA;
 
-  const _FilaSincronizacion({required this.titulo, required this.pendiente, this.enviadoA});
+  const _FilaSincronizacion({
+    required this.titulo,
+    required this.pendiente,
+    this.enviadoA,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -159,21 +172,10 @@ class _FilaSincronizacion extends StatelessWidget {
             ),
           ),
           if (pendiente)
-            Container(
-              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
-              decoration: BoxDecoration(
-                color: Colors.white,
-                borderRadius: BorderRadius.circular(14),
-                border: Border.all(color: ColoresApp.ambar, width: 1.5),
-              ),
-              child: const Text(
-                'Pendiente',
-                style: TextStyle(
-                  fontSize: 12,
-                  fontWeight: FontWeight.bold,
-                  color: ColoresApp.ambarOscuro,
-                ),
-              ),
+            const ChipEstadoAmbar(
+              texto: 'Pendiente',
+              colorFondo: Colors.white,
+              rellenoVertical: 4,
             )
           else
             Text(

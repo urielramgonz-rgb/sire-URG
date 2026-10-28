@@ -1,0 +1,191 @@
+part of '../configuracion_campos_alerta.dart';
+
+const List<CampoAlerta> _camposMaterialPeligrosoCompartidos = [
+  CampoAlerta.texto('sustancia', 'Sustancia identificada', opcional: true),
+  CampoAlerta.texto('onu', 'Identificación ONU', opcional: true),
+  CampoAlerta.seleccion('estado', 'Estado físico', [
+    'Sólido',
+    'Líquido',
+    'Gaseoso',
+    'Desconocido',
+  ]),
+  CampoAlerta.cantidad(
+    'cantidad',
+    'Cantidad estimada',
+    opcional: true,
+    decimal: true,
+  ),
+  CampoAlerta.seleccion('unidad_cantidad', 'Unidad de cantidad', [
+    'Litros',
+    'Kilogramos',
+    'Toneladas',
+    'Metros cúbicos',
+    'Otra',
+    'Desconocida',
+  ]),
+  CampoAlerta.seleccion('origen', 'Origen del incidente', [
+    'Tanque',
+    'Cilindro',
+    'Tubería',
+    'Vehículo',
+    'Tambor',
+    'Contenedor',
+    'Instalación',
+    'Otro',
+    'Desconocido',
+  ]),
+  CampoAlerta.siNo('expuestas', '¿Hay personas posiblemente expuestas?'),
+  CampoAlerta.cantidad(
+    'cantidad_expuestas',
+    'Número estimado de personas expuestas',
+    opcional: true,
+    unidad: 'personas',
+  ),
+  CampoAlerta.siNo('fuego', '¿Hay fuego?'),
+  CampoAlerta.siNo('explosion', '¿Existe riesgo de explosión reportado?'),
+  CampoAlerta.siNo(
+    'drenajes_agua',
+    '¿Hay afectación de drenajes o cuerpos de agua?',
+  ),
+];
+
+const Map<String, List<CampoAlerta>> _camposMaterialPeligroso = {
+  'Fuga': [
+    ..._camposMaterialPeligrosoCompartidos,
+    CampoAlerta.seleccion('tipo_fuga', 'Tipo de fuga', [
+      'Gas',
+      'Líquido',
+      'Vapor',
+      'Desconocido',
+    ]),
+    CampoAlerta.texto('lugar_origen', 'Lugar de origen', opcional: true),
+    CampoAlerta.siNo('continua', '¿La fuga continúa según el reporte?'),
+    CampoAlerta.texto('senal', 'Olor, nube o señal observada', opcional: true),
+  ],
+  'Derrame': [
+    ..._camposMaterialPeligrosoCompartidos,
+    CampoAlerta.texto('superficie', 'Superficie afectada', opcional: true),
+    CampoAlerta.seleccion('tipo_superficie', 'Tipo de superficie', [
+      'Suelo',
+      'Pavimento',
+      'Interior de inmueble',
+      'Agua',
+      'Otra',
+      'Desconocida',
+    ]),
+    CampoAlerta.siNo(
+      'extension',
+      '¿El líquido o material continúa extendiéndose?',
+    ),
+    CampoAlerta.siNo('contacto', '¿Hay contacto reportado con personas?'),
+  ],
+  'Explosión': [
+    ..._camposMaterialPeligrosoCompartidos,
+    CampoAlerta.seleccion('origen_sospechado', 'Origen sospechado', [
+      'Gas',
+      'Recipiente presurizado',
+      'Proceso industrial',
+      'Desconocido',
+      'Otro',
+    ]),
+    CampoAlerta.siNo('explosiones', '¿Se reportan explosiones adicionales?'),
+    CampoAlerta.texto('danos', 'Daños observados', largo: true, opcional: true),
+    CampoAlerta.cantidad(
+      'lesionadas',
+      'Número de personas lesionadas reportadas',
+      opcional: true,
+      unidad: 'personas',
+    ),
+    CampoAlerta.siNo('incendio_posterior', '¿Hay incendio posterior?'),
+  ],
+  'Incendio': [
+    ..._camposMaterialPeligrosoCompartidos,
+    CampoAlerta.texto(
+      'instalacion_transporte',
+      'Tipo de instalación o transporte',
+      opcional: true,
+    ),
+    CampoAlerta.texto(
+      'material_quema',
+      'Material que se quema',
+      opcional: true,
+    ),
+    CampoAlerta.siNo('recipientes', '¿Hay recipientes expuestos al fuego?'),
+    CampoAlerta.siNo('humo', '¿Se reporta humo o nube?'),
+    CampoAlerta.siNo('atrapadas', '¿Hay personas atrapadas?'),
+  ],
+  'Tóxico/Infeccioso': [
+    ..._camposMaterialPeligrosoCompartidos,
+    CampoAlerta.seleccion('tipo_material', 'Tipo de material', [
+      'Tóxico',
+      'Biológico infeccioso',
+      'Desconocido',
+      'Otro',
+    ]),
+    CampoAlerta.seleccion('origen_toxico_infeccioso', 'Origen', [
+      'Laboratorio',
+      'Hospital',
+      'Transporte',
+      'Instalación industrial',
+      'Residuo',
+      'Otro',
+      'Desconocido',
+    ]),
+    CampoAlerta.seleccion('via_exposicion', 'Vía de exposición reportada', [
+      'Inhalación',
+      'Contacto',
+      'Ingestión',
+      'Desconocida',
+    ]),
+    CampoAlerta.siNo('sintomas', '¿Hay personas con síntomas reportados?'),
+    CampoAlerta.siNo(
+      'contaminacion',
+      '¿Se sospecha contaminación de superficies o espacios?',
+    ),
+  ],
+  'Radioactivo': [
+    ..._camposMaterialPeligrosoCompartidos,
+    CampoAlerta.texto(
+      'etiqueta',
+      'Identificación o etiqueta visible',
+      opcional: true,
+    ),
+    CampoAlerta.seleccion('origen_conocido', 'Origen conocido', [
+      'Instalación médica',
+      'Industrial',
+      'Laboratorio',
+      'Transporte',
+      'Desconocido',
+      'Otro',
+    ]),
+    CampoAlerta.seleccion('contenedor', 'Estado del contenedor', [
+      'Aparentemente intacto',
+      'Dañado',
+      'Desconocido',
+    ]),
+    CampoAlerta.siNo('expuestas', '¿Hay personas posiblemente expuestas?'),
+    CampoAlerta.siNo('perdida', '¿Hay daño o pérdida del material reportada?'),
+  ],
+  'Corrosivo': [
+    ..._camposMaterialPeligrosoCompartidos,
+    CampoAlerta.texto(
+      'nombre_sustancia',
+      'Nombre de la sustancia si se conoce',
+      opcional: true,
+    ),
+    CampoAlerta.seleccion('recipiente', 'Tipo de recipiente', [
+      'Tanque',
+      'Cilindro',
+      'Tambor',
+      'Tubería',
+      'Otro',
+      'Desconocido',
+    ]),
+    CampoAlerta.texto('superficie', 'Superficie afectada', opcional: true),
+    CampoAlerta.siNo('contacto', '¿Hay contacto con personas?'),
+    CampoAlerta.siNo(
+      'danos',
+      '¿Hay daño visible en materiales o instalaciones?',
+    ),
+  ],
+};
