@@ -126,37 +126,46 @@ class _PantallaSeguridadState extends State<PantallaSeguridad> {
                             ],
                           ),
                   ),
-                  if (widget.sesionActiva) ...[
-                    const SizedBox(height: 22),
-                    _SeccionSeguridad(
-                      icono: Icons.devices_outlined,
-                      titulo: 'Sesiones por dispositivo',
-                      descripcion: 'Consulta y cierra sesiones individualmente.',
-                      child: Column(
-                        children: [
-                          _FilaDispositivo(
-                            icono: Icons.phone_android,
-                            nombre: 'Este dispositivo',
-                            detalle: 'Sesión actual · Activa',
-                            actual: true,
-                            alCerrar: _cerrarSesionActual,
-                          ),
-                          if (_otraSesionActiva) ...[
-                            const Divider(height: 22),
-                            _FilaDispositivo(
-                              icono: Icons.computer_outlined,
-                              nombre: 'Navegador web',
-                              detalle: 'Otra sesión · Activa',
-                              actual: false,
-                              alCerrar: () => setState(
-                                () => _otraSesionActiva = false,
+                  
+                  const SizedBox(height: 22),
+                  _SeccionSeguridad(
+                    icono: Icons.devices_outlined,
+                    titulo: 'Sesiones por dispositivo',
+                    descripcion: widget.sesionActiva
+                        ? 'Consulta y cierra sesiones individualmente.'
+                        : 'Inicia sesión para administrar tus dispositivos.',
+                    child: widget.sesionActiva
+                        ? Column(
+                            children: [
+                              _FilaDispositivo(
+                                icono: Icons.phone_android,
+                                nombre: 'Este dispositivo',
+                                detalle: 'Sesión actual · Activa',
+                                actual: true,
+                                alCerrar: _cerrarSesionActual,
                               ),
+                              if (_otraSesionActiva) ...[
+                                const Divider(height: 22),
+                                _FilaDispositivo(
+                                  icono: Icons.computer_outlined,
+                                  nombre: 'Navegador web',
+                                  detalle: 'Otra sesión · Activa',
+                                  actual: false,
+                                  alCerrar: () => setState(
+                                    () => _otraSesionActiva = false,
+                                  ),
+                                ),
+                              ],
+                            ],
+                          )
+                        : const Text(
+                            'No hay una sesión activa en esta vista.',
+                            style: TextStyle(
+                              color: ColoresApp.atenuado,
+                              fontSize: 13,
                             ),
-                          ],
-                        ],
-                      ),
-                    ),
-                  ],
+                          ),
+                  ),
                   if (widget.sesionActiva) ...[
                     const SizedBox(height: 14),
                     OutlinedButton.icon(
