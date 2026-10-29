@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 
-import 'pantallas/pantalla_login.dart';
+import 'pantallas/pantalla_splash.dart';
 import 'tema/colores_app.dart';
 
 void main() => runApp(const AplicacionSire());
@@ -18,7 +18,7 @@ class AplicacionSire extends StatelessWidget {
         scaffoldBackgroundColor: Colors.white,
         colorScheme: ColorScheme.fromSeed(seedColor: ColoresApp.azulMarino),
       ),
-      home: const PantallaLogin(),
+      home: const PantallaSplash(),
     );
   }
 }

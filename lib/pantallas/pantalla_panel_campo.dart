@@ -8,6 +8,7 @@ import '../datos/repositorio_reportes.dart';
 import '../modelos/reporte_servicio.dart';
 import 'pantalla_sincronizacion.dart';
 import 'pantalla_tiempos.dart';
+import 'pantalla_seguridad.dart';
 
 /// S2 · Panel de servicios (Perfil Campo / Bomberos y Paramédicos).
 class PantallaPanelCampo extends StatelessWidget {
@@ -25,9 +26,23 @@ class PantallaPanelCampo extends StatelessWidget {
       body: SafeArea(
         child: Column(
           children: [
-            const BarraSuperiorSire(
+            BarraSuperiorSire(
               titulo: 'Mi Panel',
-              widgetFinal: ChipConexion(enLinea: true),
+              widgetFinal: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  const ChipConexion(enLinea: true),
+                  IconButton(
+                    tooltip: 'Seguridad y sesión',
+                    onPressed: () => _abrir(
+                      context,
+                      const PantallaSeguridad(sesionActiva: true),
+                    ),
+                    icon: const Icon(Icons.manage_accounts_outlined),
+                    color: Colors.white,
+                  ),
+                ],
+              ),
             ),
             Expanded(
               child: ListView(

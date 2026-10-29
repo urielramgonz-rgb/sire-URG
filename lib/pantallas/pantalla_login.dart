@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import '../tema/colores_app.dart';
 import 'pantalla_panel_central.dart';
 import 'pantalla_panel_campo.dart';
+import 'pantalla_seguridad.dart';
 
 class PantallaLogin extends StatefulWidget {
   const PantallaLogin({super.key});
@@ -102,6 +103,19 @@ class _PantallaLoginState extends State<PantallaLogin> {
                           fontWeight: FontWeight.bold,
                           letterSpacing: 1,
                         ),
+                      ),
+                    ),
+                    const SizedBox(height: 10),
+                    TextButton.icon(
+                      onPressed: () => Navigator.of(context).push(
+                        MaterialPageRoute(
+                          builder: (_) => const PantallaSeguridad(),
+                        ),
+                      ),
+                      icon: const Icon(Icons.lock_reset_outlined),
+                      label: const Text('Cambiar PIN'),
+                      style: TextButton.styleFrom(
+                        foregroundColor: ColoresApp.azulMarino,
                       ),
                     ),
                   ],

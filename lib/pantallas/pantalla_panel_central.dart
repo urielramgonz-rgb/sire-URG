@@ -9,6 +9,7 @@ import '../modelos/reporte_servicio.dart';
 import 'pantalla_nueva_alerta.dart';
 import 'pantalla_sincronizacion.dart';
 import 'pantalla_bitacora.dart';
+import 'pantalla_seguridad.dart';
 
 /// S2 · Panel de servicios (Perfil Central / Radio-operador).
 class PantallaPanelCentral extends StatelessWidget {
@@ -30,9 +31,23 @@ class PantallaPanelCentral extends StatelessWidget {
           body: SafeArea(
             child: Column(
               children: [
-                const BarraSuperiorSire(
+                BarraSuperiorSire(
                   titulo: 'Panel Central',
-                  widgetFinal: ChipConexion(enLinea: true),
+                  widgetFinal: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      const ChipConexion(enLinea: true),
+                      IconButton(
+                        tooltip: 'Seguridad y sesión',
+                        onPressed: () => _abrir(
+                          context,
+                          const PantallaSeguridad(sesionActiva: true),
+                        ),
+                        icon: const Icon(Icons.manage_accounts_outlined),
+                        color: Colors.white,
+                      ),
+                    ],
+                  ),
                 ),
                 Expanded(
                   child: ListView(

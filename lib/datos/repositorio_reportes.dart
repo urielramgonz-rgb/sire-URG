@@ -121,12 +121,12 @@ class ReportesRepositorio extends ChangeNotifier {
       prioridad: 'Alta',
       personal: const [
         PersonalReporte(
-          nombre: 'Juan González',
+          nombre: 'Andres Romo',
           funcion: 'Maquinista',
           unidad: 'BYP01',
         ),
         PersonalReporte(
-          nombre: 'Cap. Hernández',
+          nombre: 'Juan González',
           funcion: 'Jefe de servicio',
           unidad: 'BYP01',
         ),
@@ -207,12 +207,12 @@ class ReportesRepositorio extends ChangeNotifier {
       prioridad: 'Media',
       personal: const [
         PersonalReporte(
-          nombre: 'Bom. Luis Ramírez',
+          nombre: 'Andres Romo',
           funcion: 'Maquinista',
           unidad: 'BYP02',
         ),
         PersonalReporte(
-          nombre: 'Cap. Carlos Méndez',
+          nombre: 'Juan González',
           funcion: 'Jefe de servicio',
           unidad: 'BYP02',
         ),
@@ -293,12 +293,12 @@ class ReportesRepositorio extends ChangeNotifier {
       prioridad: 'Alta',
       personal: const [
         PersonalReporte(
-          nombre: 'Bom. Miguel Torres',
+          nombre: 'Andres Romo',
           funcion: 'Maquinista',
           unidad: 'BYP04',
         ),
         PersonalReporte(
-          nombre: 'Cap. Laura Sánchez',
+          nombre: 'Juan González',
           funcion: 'Jefe de servicio',
           unidad: 'BYP04',
         ),
@@ -387,12 +387,12 @@ class ReportesRepositorio extends ChangeNotifier {
       prioridad: 'Alta',
       personal: const [
         PersonalReporte(
-          nombre: 'Bom. Arturo Pérez',
+          nombre: 'Andres Romo',
           funcion: 'Maquinista',
           unidad: 'BYP05',
         ),
         PersonalReporte(
-          nombre: 'Cap. Ricardo Flores',
+          nombre: 'Juan González',
           funcion: 'Jefe de servicio',
           unidad: 'BYP05',
         ),
