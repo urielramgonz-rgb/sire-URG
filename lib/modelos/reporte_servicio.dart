@@ -1,3 +1,12 @@
+import 'enums.dart';
+
+/// Formato HH:mm usado en cronologías y reportes.
+String formatearHora(DateTime momento) {
+  final hora = momento.hour.toString().padLeft(2, '0');
+  final minuto = momento.minute.toString().padLeft(2, '0');
+  return '$hora:$minuto';
+}
+
 class ReporteServicio {
   const ReporteServicio({
     required this.id,
@@ -13,7 +22,6 @@ class ReporteServicio {
     required this.prioridad,
     required this.personal,
     required this.apoyoExterno,
-    required this.estado,
     required this.cronologia,
     this.eventosCampo = '',
     this.corporacionesApoyo = const [],
@@ -34,10 +42,9 @@ class ReporteServicio {
   final String solicitante;
   final Map<String, String> datosSolicitante;
   final List<String> unidadesAsignadas;
-  final String prioridad;
+  final PrioridadServicio prioridad;
   final List<PersonalReporte> personal;
   final String apoyoExterno;
-  final String estado;
   final List<EventoCronologia> cronologia;
   final String eventosCampo;
   final List<String> corporacionesApoyo;
@@ -46,6 +53,38 @@ class ReporteServicio {
   final String estadoUnidadesApoyo;
   final String estadoTripulacionApoyo;
   final String cierreServicio;
+
+  /// Estado derivado del último tiempo registrado.
+  EstadoServicio get estado {
+    EstatusServicio? ultimo;
+    for (final evento in cronologia) {
+      if (evento.completado) ultimo = evento.estatus;
+    }
+    return EstadoServicio.desdeEstatus(ultimo);
+  }
+
+  /// Un servicio finalizado es de solo consulta.
+  bool get cerrado => estado == EstadoServicio.finalizado;
+
+  /// Primer tiempo que aún no se registra (null si ya están todos).
+  EventoCronologia? get siguientePendiente {
+    for (final evento in cronologia) {
+      if (!evento.completado) return evento;
+    }
+    return null;
+  }
+
+  /// Hora del último tiempo registrado.
+  DateTime? get ultimaMarca {
+    DateTime? ultima;
+    for (final evento in cronologia) {
+      final marca = evento.marcadoEn;
+      if (marca != null && (ultima == null || marca.isAfter(ultima))) {
+        ultima = marca;
+      }
+    }
+    return ultima;
+  }
 
   DatosServicioReporte get datosServicio => DatosServicioReporte(
     eventosCampo: eventosCampo,
@@ -57,31 +96,41 @@ class ReporteServicio {
     cierreServicio: cierreServicio,
   );
 
+  ReporteServicio _copiar({
+    List<EventoCronologia>? nuevaCronologia,
+    DatosServicioReporte? datos,
+  }) {
+    final d = datos ?? datosServicio;
+    return ReporteServicio(
+      id: id,
+      folio: folio,
+      categoria: categoria,
+      subcategoria: subcategoria,
+      camposFormulario: camposFormulario,
+      ubicacion: ubicacion,
+      detallesUbicacion: detallesUbicacion,
+      solicitante: solicitante,
+      datosSolicitante: datosSolicitante,
+      unidadesAsignadas: unidadesAsignadas,
+      prioridad: prioridad,
+      personal: personal,
+      apoyoExterno: apoyoExterno,
+      cronologia: nuevaCronologia ?? cronologia,
+      eventosCampo: d.eventosCampo,
+      corporacionesApoyo: d.corporacionesApoyo,
+      estadoCorporacionesApoyo: d.estadoCorporacionesApoyo,
+      unidadesApoyo: d.unidadesApoyo,
+      estadoUnidadesApoyo: d.estadoUnidadesApoyo,
+      estadoTripulacionApoyo: d.estadoTripulacionApoyo,
+      cierreServicio: d.cierreServicio,
+    );
+  }
+
   ReporteServicio conDatosServicio(DatosServicioReporte datos) =>
-      ReporteServicio(
-        id: id,
-        folio: folio,
-        categoria: categoria,
-        subcategoria: subcategoria,
-        camposFormulario: camposFormulario,
-        ubicacion: ubicacion,
-        detallesUbicacion: detallesUbicacion,
-        solicitante: solicitante,
-        datosSolicitante: datosSolicitante,
-        unidadesAsignadas: unidadesAsignadas,
-        prioridad: prioridad,
-        personal: personal,
-        apoyoExterno: apoyoExterno,
-        estado: estado,
-        cronologia: cronologia,
-        eventosCampo: datos.eventosCampo,
-        corporacionesApoyo: datos.corporacionesApoyo,
-        estadoCorporacionesApoyo: datos.estadoCorporacionesApoyo,
-        unidadesApoyo: datos.unidadesApoyo,
-        estadoUnidadesApoyo: datos.estadoUnidadesApoyo,
-        estadoTripulacionApoyo: datos.estadoTripulacionApoyo,
-        cierreServicio: datos.cierreServicio,
-      );
+      _copiar(datos: datos);
+
+  ReporteServicio conCronologia(List<EventoCronologia> nueva) =>
+      _copiar(nuevaCronologia: List.unmodifiable(nueva));
 
   ReporteServicio actualizarDatosServicio({
     required String eventos,
@@ -156,16 +205,45 @@ class PersonalReporte {
   final String unidad;
 }
 
+/// Un tiempo de la línea de tiempo del servicio. Se registra una sola vez
+/// con la hora real del dispositivo; después es inmutable.
 class EventoCronologia {
   const EventoCronologia({
-    required this.titulo,
-    required this.hora,
-    required this.completado,
-    required this.detalle,
+    required this.estatus,
+    this.marcadoEn,
+    this.detalle = '',
   });
 
-  final String titulo;
-  final String hora;
-  final bool completado;
+  /// Línea de tiempo nueva: solo el envío del reporte queda registrado.
+  static List<EventoCronologia> lineaInicial(
+    DateTime enviadoEn, {
+    String detalle = 'Central',
+  }) {
+    final eventos = <EventoCronologia>[];
+    for (final estatus in EstatusServicio.values) {
+      if (estatus == EstatusServicio.alertaEnviada) {
+        eventos.add(
+          EventoCronologia(
+            estatus: estatus,
+            marcadoEn: enviadoEn,
+            detalle: detalle,
+          ),
+        );
+      } else {
+        eventos.add(EventoCronologia(estatus: estatus));
+      }
+    }
+    return List.unmodifiable(eventos);
+  }
+
+  final EstatusServicio estatus;
+  final DateTime? marcadoEn;
   final String detalle;
+
+  String get titulo => estatus.etiqueta;
+  bool get completado => marcadoEn != null;
+  String get hora => marcadoEn == null ? '--:--' : formatearHora(marcadoEn!);
+
+  EventoCronologia marcar(DateTime momento, String detalle) =>
+      EventoCronologia(estatus: estatus, marcadoEn: momento, detalle: detalle);
 }

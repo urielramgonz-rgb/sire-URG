@@ -4,6 +4,7 @@ import '../tema/colores_app.dart';
 import '../componentes/widgets_comunes.dart';
 import '../componentes/widgets_formulario.dart';
 import '../componentes/barra_superior.dart';
+import '../datos/autenticacion.dart';
 import '../datos/repositorio_reportes.dart';
 import '../modelos/reporte_servicio.dart';
 import 'pantalla_sincronizacion.dart';
@@ -21,6 +22,9 @@ class PantallaPanelCampo extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final repositorio = ReportesRepositorio.instancia;
+    final usuario = Autenticacion.instancia.usuarioActual;
+    final unidad = usuario?.unidad;
+    final puedeAtender = usuario != null && usuario.canTakeService();
     return Scaffold(
       backgroundColor: ColoresApp.fondo,
       body: SafeArea(
@@ -48,9 +52,10 @@ class PantallaPanelCampo extends StatelessWidget {
               child: ListView(
                 padding: const EdgeInsets.all(20),
                 children: [
-                  const Text(
-                    'Juan González · Unidad BYP01',
-                    style: TextStyle(
+                  Text(
+                    '${usuario?.nombre ?? 'Sin sesión'}'
+                    '${unidad == null ? '' : ' · Unidad $unidad'}',
+                    style: const TextStyle(
                       fontSize: 18,
                       fontWeight: FontWeight.bold,
                       color: ColoresApp.tinta,
@@ -77,16 +82,30 @@ class PantallaPanelCampo extends StatelessWidget {
                   AnimatedBuilder(
                     animation: repositorio,
                     builder: (context, _) {
-                      final asignados = repositorio.asignadosA('BYP01');
-                      if (asignados.isEmpty) {
+                      if (!puedeAtender || unidad == null) {
                         return const Text(
-                          'No hay servicios asignados a BYP01.',
+                          'Tu cuenta no puede recibir ni atender servicios.',
                           style: TextStyle(color: ColoresApp.atenuado),
                         );
                       }
+                      final asignados = repositorio.asignadosA(unidad);
+                      final activos = asignados
+                          .where((reporte) => !reporte.cerrado)
+                          .toList();
+                      final finalizados = asignados
+                          .where((reporte) => reporte.cerrado)
+                          .toList();
                       return Column(
+                        crossAxisAlignment: CrossAxisAlignment.stretch,
                         children: [
-                          for (final reporte in asignados) ...[
+                          if (activos.isEmpty)
+                            Text(
+                              'No hay servicios activos para $unidad.',
+                              style: const TextStyle(
+                                color: ColoresApp.atenuado,
+                              ),
+                            ),
+                          for (final reporte in activos) ...[
                             _TarjetaReporteCampo(
                               reporte: reporte,
                               alAbrir: () => _abrir(
@@ -96,21 +115,31 @@ class PantallaPanelCampo extends StatelessWidget {
                             ),
                             const SizedBox(height: 10),
                           ],
+                          const SizedBox(height: 10),
+                          const EtiquetaSeccion('HISTORIAL RECIENTE'),
+                          const SizedBox(height: 10),
+                          if (finalizados.isEmpty)
+                            const Text(
+                              'Aún no hay servicios finalizados.',
+                              style: TextStyle(color: ColoresApp.atenuado),
+                            ),
+                          for (final reporte in finalizados) ...[
+                            GestureDetector(
+                              onTap: () => _abrir(
+                                context,
+                                PantallaTiempos(reporte: reporte),
+                              ),
+                              child: _FilaHistorial(
+                                titulo:
+                                    '${reporte.folioVisible} · ${reporte.subcategoria}',
+                                subtitulo: reporte.categoria,
+                              ),
+                            ),
+                            const SizedBox(height: 10),
+                          ],
                         ],
                       );
                     },
-                  ),
-                  const SizedBox(height: 20),
-                  const EtiquetaSeccion('HISTORIAL RECIENTE'),
-                  const SizedBox(height: 10),
-                  const _FilaHistorial(
-                    titulo: '0152 · Incendio forestal',
-                    subtitulo: 'Reporte enviado 09:12',
-                  ),
-                  const SizedBox(height: 10),
-                  const _FilaHistorial(
-                    titulo: '0151 · Urgencia médica',
-                    subtitulo: 'Reporte enviado ayer',
                   ),
                 ],
               ),
@@ -172,7 +201,7 @@ class _TarjetaReporteCampo extends StatelessWidget {
             ),
             const SizedBox(height: 10),
             Text(
-              reporte.estado,
+              reporte.estado.etiqueta,
               style: const TextStyle(
                 fontSize: 14,
                 fontWeight: FontWeight.bold,

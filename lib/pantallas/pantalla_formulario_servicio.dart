@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import '../componentes/barra_superior.dart';
 import '../componentes/widgets_comunes.dart';
 import '../componentes/widgets_formulario.dart';
+import '../datos/autenticacion.dart';
 import '../datos/repositorio_reportes.dart';
 import '../modelos/reporte_servicio.dart';
 import '../tema/colores_app.dart';
@@ -217,7 +218,10 @@ class _PantallaFormularioServicioState
 
   void _enviarReporte() {
     _guardarBorrador();
-    if (!_repositorio.publicarDatosServicio(widget.reporte.id)) {
+    if (!_repositorio.publicarDatosServicio(
+      widget.reporte.id,
+      usuario: Autenticacion.instancia.usuarioActual,
+    )) {
       _notificar('No se encontró el reporte para enviar.');
       return;
     }

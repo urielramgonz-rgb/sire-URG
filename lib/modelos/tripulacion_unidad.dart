@@ -20,6 +20,5 @@ class IntegranteApoyo {
   String nombreCompleto = '';
   String? rangoFuncion;
 
-  bool get completo =>
-      nombreCompleto.trim().isNotEmpty && rangoFuncion != null;
+  bool get completo => nombreCompleto.trim().isNotEmpty && rangoFuncion != null;
 }

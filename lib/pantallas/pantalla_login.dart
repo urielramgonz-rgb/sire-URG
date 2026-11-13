@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 
+import '../datos/autenticacion.dart';
+import '../modelos/usuario.dart';
 import '../tema/colores_app.dart';
 import 'pantalla_panel_central.dart';
 import 'pantalla_panel_campo.dart';
@@ -13,16 +15,8 @@ class PantallaLogin extends StatefulWidget {
 }
 
 class _PantallaLoginState extends State<PantallaLogin> {
-  late TextEditingController _usuarioController;
-  late TextEditingController _pinController;
-
-  @override
-  void initState() {
-    super.initState();
-    // Valores por defecto exactos para facilitar pruebas
-    _usuarioController = TextEditingController(text: 'Uriel Ramírez');
-    _pinController = TextEditingController(text: '1234');
-  }
+  final _usuarioController = TextEditingController();
+  final _pinController = TextEditingController();
 
   @override
   void dispose() {
@@ -32,31 +26,30 @@ class _PantallaLoginState extends State<PantallaLogin> {
   }
 
   void _iniciarSesion() {
-    // Se lee el texto tal cual, sin convertir a minúsculas
-    final usuario = _usuarioController.text.trim();
-    final pin = _pinController.text.trim();
+    final resultado = Autenticacion.instancia.iniciarSesion(
+      _usuarioController.text,
+      _pinController.text,
+    );
+    // El PIN nunca se conserva en pantalla después de intentar acceder.
+    _pinController.clear();
 
-    // Validación exacta para el perfil de Central
-    if (usuario == 'Uriel Ramírez' && pin == '1234') {
-      Navigator.of(context).push(
-        MaterialPageRoute(builder: (_) => const PantallaPanelCentral()),
-      );
-    } 
-    // Validación exacta para el perfil de Campo
-    else if (usuario == 'Juan González' && pin == '5678') {
-      Navigator.of(context).push(
-        MaterialPageRoute(builder: (_) => const PantallaPanelCampo()),
-      );
-    } 
-    // Credenciales incorrectas
-    else {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Usuario o PIN incorrecto. Revisa mayúsculas y acentos.'),
-          backgroundColor: ColoresApp.rojo,
-        ),
-      );
+    final usuario = resultado.usuario;
+    if (usuario == null) {
+      ScaffoldMessenger.of(context)
+        ..hideCurrentSnackBar()
+        ..showSnackBar(
+          SnackBar(
+            content: Text(resultado.mensaje ?? 'No se pudo iniciar sesión.'),
+            backgroundColor: ColoresApp.rojo,
+          ),
+        );
+      return;
     }
+
+    final Widget destino = usuario.rol == RolUsuario.central
+        ? const PantallaPanelCentral()
+        : const PantallaPanelCampo();
+    Navigator.of(context).push(MaterialPageRoute(builder: (_) => destino));
   }
 
   @override
@@ -73,17 +66,16 @@ class _PantallaLoginState extends State<PantallaLogin> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: [
-                    const _EtiquetaCampo('Usuario'),
+                    const _EtiquetaCampo('Identificador de empleado o NIF'),
                     const SizedBox(height: 8),
-                    _CajaEntrada(
-                      controlador: _usuarioController,
-                    ),
+                    _CajaEntrada(controlador: _usuarioController),
                     const SizedBox(height: 22),
                     const _EtiquetaCampo('PIN'),
                     const SizedBox(height: 8),
                     _CajaEntrada(
                       controlador: _pinController,
                       ocultar: true,
+                      alEnviar: _iniciarSesion,
                     ),
                     const SizedBox(height: 28),
                     ElevatedButton(
@@ -200,10 +192,12 @@ class _EtiquetaCampo extends StatelessWidget {
 class _CajaEntrada extends StatelessWidget {
   final TextEditingController controlador;
   final bool ocultar;
+  final VoidCallback? alEnviar;
 
   const _CajaEntrada({
     required this.controlador,
     this.ocultar = false,
+    this.alEnviar,
   });
 
   @override
@@ -211,11 +205,17 @@ class _CajaEntrada extends StatelessWidget {
     return TextField(
       controller: controlador,
       obscureText: ocultar,
+      autocorrect: false,
+      enableSuggestions: !ocultar,
+      keyboardType: ocultar ? TextInputType.number : TextInputType.text,
+      onSubmitted: alEnviar == null ? null : (_) => alEnviar!(),
       style: const TextStyle(fontSize: 18, color: ColoresApp.tinta),
       decoration: InputDecoration(
         isDense: true,
-        contentPadding:
-            const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+        contentPadding: const EdgeInsets.symmetric(
+          horizontal: 16,
+          vertical: 16,
+        ),
         enabledBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(10),
           borderSide: const BorderSide(color: ColoresApp.linea, width: 2),

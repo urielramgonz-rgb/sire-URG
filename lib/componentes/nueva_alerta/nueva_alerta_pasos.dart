@@ -69,12 +69,220 @@ extension _PantallaNuevaAlertaPasos on _PantallaNuevaAlertaState {
         ),
         const SizedBox(height: 16),
         for (final campo in campos)
-          _construirCampoAlerta(
-            campo,
-            _idCampoEmergencia(categoria, subtipo, campo.id),
+          categoria == 'INCENDIO' && subtipo == 'Industrial'
+              ? _construirCampoIndustrial(campo)
+              : _construirCampoAlerta(
+                  campo,
+                  _idCampoEmergencia(categoria, subtipo, campo.id),
+                ),
+        if (categoria == 'INCENDIO' && subtipo == 'Industrial')
+          ..._seccionIndustrial(),
+      ],
+    );
+  }
+
+  Widget _construirCampoIndustrial(CampoAlerta campo) {
+    final id = _idCampoEmergencia('INCENDIO', 'Industrial', campo.id);
+    final especificacion = _idCampoEmergencia(
+      'INCENDIO',
+      'Industrial',
+      'instalacion_especificacion',
+    );
+    final editor = campo.id == 'instalacion'
+        ? _campoDropdown(
+            id: id,
+            etiqueta: campo.etiqueta,
+            opciones: campo.opciones,
+            requerido: campo.obligatorio,
+            alCambiar: (valor) {
+              if (valor != 'Otro') _limpiarValor(especificacion);
+            },
+          )
+        : _construirCampoAlerta(campo, id);
+    if (campo.id != 'instalacion') return editor;
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        editor,
+        if (_selecciones[id] == 'Otro')
+          _campoTexto(
+            id: especificacion,
+            etiqueta: 'Especifique el tipo de instalación',
+            sugerencia: 'Describe el tipo de instalación',
+            requerido: true,
+            validator: (valor) => valor == null || valor.trim().isEmpty
+                ? 'Especifica el tipo de instalación.'
+                : null,
           ),
       ],
     );
+  }
+
+  List<Widget> _seccionIndustrial() {
+    final atrapadas = _idCampoEmergencia(
+      'INCENDIO',
+      'Industrial',
+      'personas_atrapadas',
+    );
+    final lesionadas = _idCampoEmergencia(
+      'INCENDIO',
+      'Industrial',
+      'personas_lesionadas',
+    );
+    final peligrosos = _idCampoEmergencia(
+      'INCENDIO',
+      'Industrial',
+      'materiales_peligrosos',
+    );
+    final sustancias = _idCampoEmergencia(
+      'INCENDIO',
+      'Industrial',
+      'sustancias_peligrosas',
+    );
+    final ubicacion = _idCampoEmergencia(
+      'INCENDIO',
+      'Industrial',
+      'ubicacion_materiales_peligrosos',
+    );
+    final observaciones = _idCampoEmergencia(
+      'INCENDIO',
+      'Industrial',
+      'observaciones_adicionales',
+    );
+
+    return [
+      SeccionInformacionPersonas(
+        mostrarAtrapadas: true,
+        mostrarLesionadas: true,
+        respuestaAtrapadas: _selecciones[atrapadas],
+        respuestaLesionadas: _selecciones[lesionadas],
+        cantidadAtrapadas: _controlador('$atrapadas:cantidad'),
+        cantidadLesionadas: _controlador('$lesionadas:cantidad'),
+        cantidadAtrapadasDesconocida:
+            _selecciones['$atrapadas:cantidad_desconocida'] == 'Sí',
+        cantidadLesionadasDesconocida:
+            _selecciones['$lesionadas:cantidad_desconocida'] == 'Sí',
+        alCambiarAtrapadas: (valor) =>
+            _cambiarRespuestaPersonas(atrapadas, valor),
+        alCambiarLesionadas: (valor) =>
+            _cambiarRespuestaPersonas(lesionadas, valor),
+        alCambiarDesconocidaAtrapadas: (valor) =>
+            _cambiarCantidadDesconocida(atrapadas, valor),
+        alCambiarDesconocidaLesionadas: (valor) =>
+            _cambiarCantidadDesconocida(lesionadas, valor),
+        validarCantidadAtrapadas: (valor) =>
+            _validarCantidadPersonas(valor, '$atrapadas:cantidad_desconocida'),
+        validarCantidadLesionadas: (valor) =>
+            _validarCantidadPersonas(valor, '$lesionadas:cantidad_desconocida'),
+      ),
+      _campoDropdown(
+        id: peligrosos,
+        etiqueta: '¿Hay cilindros, tanques o materiales peligrosos?',
+        opciones: const ['Sí', 'No', 'Desconocido'],
+        requerido: true,
+        alCambiar: (valor) {
+          if (valor != 'Sí') {
+            _limpiarValor(sustancias);
+            _limpiarValor(ubicacion);
+          }
+        },
+      ),
+      if (_selecciones[peligrosos] == 'Sí') ...[
+        _campoIndustrialDesconocido(
+          id: sustancias,
+          etiqueta: '¿Qué materiales o sustancias están involucrados?',
+        ),
+        _campoIndustrialDesconocido(
+          id: ubicacion,
+          etiqueta: '¿En qué área se encuentran?',
+        ),
+      ],
+      _campoTexto(
+        id: observaciones,
+        etiqueta: 'Observaciones adicionales',
+        sugerencia: 'Información adicional disponible',
+        multilinea: true,
+      ),
+    ];
+  }
+
+  // ignore: invalid_use_of_protected_member
+  Widget _campoIndustrialDesconocido({
+    required String id,
+    required String etiqueta,
+  }) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        _campoTexto(
+          id: id,
+          etiqueta: etiqueta,
+          sugerencia: 'Ingresa el dato si se conoce',
+          requerido: true,
+          validator: (valor) =>
+              _selecciones[_idMaterialesPeligrosos] == 'Sí' &&
+                  (valor == null || valor.trim().isEmpty)
+              ? 'Completa el dato o márcalo como desconocido.'
+              : null,
+        ),
+        Align(
+          alignment: Alignment.centerLeft,
+          child: TextButton.icon(
+            onPressed: () =>
+                // ignore: invalid_use_of_protected_member
+                setState(() => _controlador(id).text = 'Desconocido'),
+            icon: const Icon(Icons.help_outline, size: 18),
+            label: const Text('Marcar como desconocido'),
+          ),
+        ),
+      ],
+    );
+  }
+
+  String get _idMaterialesPeligrosos =>
+      _idCampoEmergencia('INCENDIO', 'Industrial', 'materiales_peligrosos');
+
+  // ignore: invalid_use_of_protected_member
+  void _cambiarRespuestaPersonas(String id, String? valor) {
+    // ignore: invalid_use_of_protected_member
+    setState(() {
+      if (valor == null) return;
+      _selecciones[id] = valor;
+      if (valor != 'Sí') {
+        _limpiarValor('$id:cantidad');
+        _selecciones.remove('$id:cantidad_desconocida');
+      }
+    });
+  }
+
+  // ignore: invalid_use_of_protected_member
+  void _cambiarCantidadDesconocida(String id, bool desconocida) {
+    // ignore: invalid_use_of_protected_member
+    setState(() {
+      _selecciones['$id:cantidad_desconocida'] = desconocida ? 'Sí' : 'No';
+      if (desconocida) _limpiarValor('$id:cantidad');
+    });
+  }
+
+  String? _validarCantidadPersonas(String? valor, String idDesconocida) {
+    if (_selecciones[idDesconocida.replaceFirst(':cantidad_desconocida', '')] !=
+        'Sí') {
+      return null;
+    }
+    if (_selecciones[idDesconocida] == 'Sí') return null;
+    final texto = valor?.trim() ?? '';
+    if (texto.isEmpty) {
+      return 'Ingresa una cantidad o marca que es desconocida.';
+    }
+    final cantidad = int.tryParse(texto);
+    if (cantidad == null || cantidad <= 0) {
+      return 'Ingresa un número entero positivo mayor que cero.';
+    }
+    return null;
+  }
+
+  void _limpiarValor(String id) {
+    _controladores[id]?.clear();
   }
 
   Widget _pasoReporteYUbicacion() {
@@ -351,6 +559,73 @@ extension _PantallaNuevaAlertaPasos on _PantallaNuevaAlertaState {
           ),
         )
         .toList();
+    if (categoria == 'INCENDIO' && subtipo == 'Industrial') {
+      String id(String campo) =>
+          _idCampoEmergencia('INCENDIO', 'Industrial', campo);
+      final instalacion = _selecciones[id('instalacion')];
+      if (instalacion == 'Otro') {
+        detalles.add(
+          MapEntry(
+            'Especifique el tipo de instalación',
+            _valor(id('instalacion_especificacion')).ifEmpty('Sin capturar'),
+          ),
+        );
+      }
+      for (final bloque in [
+        (
+          'personas_atrapadas',
+          'Personas atrapadas',
+          'Cantidad de personas atrapadas',
+        ),
+        (
+          'personas_lesionadas',
+          'Personas lesionadas',
+          'Cantidad de personas lesionadas',
+        ),
+      ]) {
+        final respuesta = _selecciones[id(bloque.$1)] ?? 'Sin seleccionar';
+        detalles.add(MapEntry(bloque.$2, respuesta));
+        if (respuesta == 'Sí') {
+          final desconocida =
+              _selecciones['${id(bloque.$1)}:cantidad_desconocida'] == 'Sí';
+          final cantidad = _valor('${id(bloque.$1)}:cantidad');
+          detalles.add(
+            MapEntry(
+              bloque.$3,
+              desconocida
+                  ? 'Cantidad desconocida'
+                  : cantidad.ifEmpty('Sin capturar'),
+            ),
+          );
+        }
+      }
+      final peligrosos = _selecciones[id('materiales_peligrosos')];
+      detalles.add(
+        MapEntry(
+          '¿Hay cilindros, tanques o materiales peligrosos?',
+          peligrosos ?? 'Sin seleccionar',
+        ),
+      );
+      if (peligrosos == 'Sí') {
+        detalles.addAll([
+          MapEntry(
+            '¿Qué materiales o sustancias están involucrados?',
+            _valor(id('sustancias_peligrosas')).ifEmpty('Sin capturar'),
+          ),
+          MapEntry(
+            '¿En qué área se encuentran?',
+            _valor(id('ubicacion_materiales_peligrosos'))
+                .ifEmpty('Sin capturar'),
+          ),
+        ]);
+      }
+      detalles.add(
+        MapEntry(
+          'Observaciones adicionales',
+          _valor(id('observaciones_adicionales')).ifEmpty('No especificado'),
+        ),
+      );
+    }
 
     final reporte = <MapEntry<String, String>>[
       MapEntry('Folio C4', _valor('general:folio').ifEmpty('Sin folio')),
@@ -426,7 +701,7 @@ extension _PantallaNuevaAlertaPasos on _PantallaNuevaAlertaState {
                         .where(_unidadesSeleccionadas.contains)
                         .join(', '),
             ),
-            MapEntry('Prioridad', _prioridadSeleccionada),
+            MapEntry('Prioridad', _prioridadSeleccionada.etiqueta),
           ],
         ),
         const SizedBox(height: 12),

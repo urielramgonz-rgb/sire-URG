@@ -2,30 +2,27 @@ part of '../configuracion_campos_alerta.dart';
 
 const Map<String, List<CampoAlerta>> _camposIncendio = {
   'Industrial': [
-    CampoAlerta.texto('instalacion', 'Tipo de instalación industrial'),
-    CampoAlerta.texto('area_proceso', 'Área o proceso afectado'),
+    CampoAlerta.seleccion('instalacion', 'Tipo de instalación industrial', [
+      'Planta de producción',
+      'Almacén industrial',
+      'Taller industrial',
+      'Planta de procesamiento',
+      'Patio industrial',
+      'Otro',
+      'Desconocido',
+    ]),
+    CampoAlerta.texto('area_proceso', 'Área afectada', opcional: true),
     CampoAlerta.texto(
       'materiales',
-      'Materiales que se queman',
+      'Materiales o equipos involucrados',
       permiteDesconocido: true,
     ),
-    CampoAlerta.seleccion('magnitud', 'Magnitud observada', [
+    CampoAlerta.seleccion('magnitud', 'Extensión del incendio', [
       'Inicial',
       'Parcial',
       'Generalizada',
       'Desconocida',
     ]),
-    CampoAlerta.siNo('atrapadas', '¿Hay personas atrapadas?'),
-    CampoAlerta.cantidad(
-      'personas_riesgo',
-      'Número estimado de personas en riesgo',
-      opcional: true,
-      unidad: 'personas',
-    ),
-    CampoAlerta.siNo(
-      'materiales_peligrosos',
-      '¿Hay cilindros, tanques o materiales peligrosos?',
-    ),
     CampoAlerta.siNo('propagacion', '¿El fuego se está propagando?'),
   ],
   'Comercio': [

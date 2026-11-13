@@ -1,11 +1,14 @@
 import 'package:flutter/material.dart';
 
 import '../componentes/barra_superior.dart';
+import '../datos/autenticacion.dart';
+import '../modelos/usuario.dart';
 import '../tema/colores_app.dart';
 import 'pantalla_splash.dart';
 
-/// Interfaz demostrativa de cambio de PIN y administración de sesiones.
-/// No valida identidad contra un servicio ni almacena credenciales.
+/// Cambio de PIN con verificación de identidad y administración de sesiones.
+/// La validación es local (demostración); la lista de sesiones por
+/// dispositivo sigue siendo ilustrativa hasta contar con un servidor.
 class PantallaSeguridad extends StatefulWidget {
   const PantallaSeguridad({super.key, this.sesionActiva = false});
 
@@ -22,6 +25,15 @@ class _PantallaSeguridadState extends State<PantallaSeguridad> {
   final _confirmarPinController = TextEditingController();
   bool _identidadVerificada = false;
   bool _otraSesionActiva = true;
+  Usuario? _usuarioVerificado;
+
+  @override
+  void initState() {
+    super.initState();
+    if (widget.sesionActiva) {
+      _usuarioController.text = Autenticacion.instancia.usuarioActual?.id ?? '';
+    }
+  }
 
   @override
   void dispose() {
@@ -33,35 +45,51 @@ class _PantallaSeguridadState extends State<PantallaSeguridad> {
   }
 
   void _verificarIdentidad() {
-    if (_usuarioController.text.trim().isEmpty ||
-        _pinActualController.text.trim().length < 4) {
-      _mensaje('Ingresa tu usuario y PIN actual para continuar.');
+    final resultado = Autenticacion.instancia.verificar(
+      _usuarioController.text,
+      _pinActualController.text,
+    );
+    _pinActualController.clear();
+    final usuario = resultado.usuario;
+    if (usuario == null) {
+      _mensaje(resultado.mensaje ?? 'No se pudo verificar tu identidad.');
       return;
     }
-    setState(() => _identidadVerificada = true);
+    setState(() {
+      _usuarioVerificado = usuario;
+      _identidadVerificada = true;
+    });
   }
 
   void _guardarPin() {
+    final usuario = _usuarioVerificado;
+    if (usuario == null) return;
     final nuevo = _pinNuevoController.text.trim();
     final confirmacion = _confirmarPinController.text.trim();
-    if (nuevo.length < 4) {
-      _mensaje('El nuevo PIN debe tener al menos 4 dígitos.');
-      return;
-    }
     if (nuevo != confirmacion) {
       _mensaje('Los PIN no coinciden.');
       return;
     }
-    _mensaje('Interfaz lista: el cambio se guardará al conectar el servicio.');
+    final error = Autenticacion.instancia.cambiarPin(usuario, nuevo);
+    if (error != null) {
+      _mensaje(error);
+      return;
+    }
+    _pinNuevoController.clear();
+    _confirmarPinController.clear();
+    setState(() {
+      _usuarioVerificado = null;
+      _identidadVerificada = false;
+    });
+    _mensaje('PIN actualizado. Úsalo la próxima vez que inicies sesión.');
   }
 
   void _mensaje(String texto) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text(texto)),
-    );
+    ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(texto)));
   }
 
   void _cerrarSesionActual() {
+    Autenticacion.instancia.cerrarSesion();
     Navigator.of(context).pushAndRemoveUntil(
       MaterialPageRoute(builder: (_) => const PantallaSplash()),
       (_) => false,
@@ -110,7 +138,7 @@ class _PantallaSeguridadState extends State<PantallaSeguridad> {
                             crossAxisAlignment: CrossAxisAlignment.stretch,
                             children: [
                               _CampoTexto(
-                                etiqueta: 'Usuario',
+                                etiqueta: 'Identificador de empleado o NIF',
                                 controlador: _usuarioController,
                               ),
                               const SizedBox(height: 12),
@@ -126,7 +154,7 @@ class _PantallaSeguridadState extends State<PantallaSeguridad> {
                             ],
                           ),
                   ),
-                  
+
                   const SizedBox(height: 22),
                   _SeccionSeguridad(
                     icono: Icons.devices_outlined,
@@ -151,9 +179,8 @@ class _PantallaSeguridadState extends State<PantallaSeguridad> {
                                   nombre: 'Navegador web',
                                   detalle: 'Otra sesión · Activa',
                                   actual: false,
-                                  alCerrar: () => setState(
-                                    () => _otraSesionActiva = false,
-                                  ),
+                                  alCerrar: () =>
+                                      setState(() => _otraSesionActiva = false),
                                 ),
                               ],
                             ],
@@ -342,18 +369,12 @@ class _FilaDispositivo extends StatelessWidget {
             ),
             Text(
               detalle,
-              style: const TextStyle(
-                color: ColoresApp.atenuado,
-                fontSize: 12,
-              ),
+              style: const TextStyle(color: ColoresApp.atenuado, fontSize: 12),
             ),
           ],
         ),
       ),
-      TextButton(
-        onPressed: alCerrar,
-        child: Text(actual ? 'Salir' : 'Cerrar'),
-      ),
+      TextButton(onPressed: alCerrar, child: Text(actual ? 'Salir' : 'Cerrar')),
     ],
   );
 }

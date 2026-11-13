@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:sire/datos/repositorio_reportes.dart';
+import 'package:sire/modelos/enums.dart';
 import 'package:sire/modelos/reporte_servicio.dart';
 import 'package:sire/pantallas/pantalla_formulario_servicio.dart';
 
@@ -19,24 +20,10 @@ void main() {
       solicitante: 'Central SMA',
       datosSolicitante: const {},
       unidadesAsignadas: const ['BYP01'],
-      prioridad: 'Media',
+      prioridad: PrioridadServicio.media,
       personal: const [],
       apoyoExterno: 'No especificado',
-      estado: 'Asignada',
-      cronologia: const [
-        EventoCronologia(
-          titulo: 'Reporte enviado',
-          hora: '15:00',
-          completado: true,
-          detalle: 'Central',
-        ),
-        EventoCronologia(
-          titulo: 'Salida de base',
-          hora: '--:--',
-          completado: false,
-          detalle: 'Pendiente',
-        ),
-      ],
+      cronologia: EventoCronologia.lineaInicial(DateTime.now()),
     );
     expect(repositorio.agregar(reporte), isTrue);
     return reporte;
@@ -226,7 +213,7 @@ void main() {
   test('los cuatro reportes de muestra conservan datos y seis eventos', () {
     final choque = repositorio.porId('demo-0154')!;
     expect(choque.unidadesAsignadas, ['BYP01']);
-    expect(choque.estado, 'En atención');
+    expect(choque.estado, EstadoServicio.enAtencion);
     expect(choque.ubicacion, 'Carretera SMA–Dolores, km 12');
     expect(choque.corporacionesApoyo, ['Cruz Roja']);
     expect(choque.unidadesApoyo.single.identificador, 'CR-12');
@@ -235,14 +222,14 @@ void main() {
       'Diego Ruiz',
       'Paula Hernández',
     ]);
-    expect(choque.cronologia.map((evento) => evento.hora).toList(), [
-      '14:32',
-      '14:34',
-      '14:47',
-      '14:50',
-      '--:--',
-      '--:--',
-    ]);
+    expect(
+      choque.cronologia.map((evento) => evento.estatus).toList(),
+      EstatusServicio.values,
+    );
+    expect(
+      choque.cronologia.map((evento) => evento.completado).toList(),
+      [true, true, true, true, false, false],
+    );
 
     for (final id in ['demo-0154', 'demo-0155', 'demo-0156', 'demo-0157']) {
       expect(repositorio.porId(id)!.cronologia, hasLength(6));

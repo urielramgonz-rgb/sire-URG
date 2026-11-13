@@ -107,6 +107,28 @@ class _TarjetaReporte extends StatelessWidget {
 
   final ReporteServicio reporte;
 
+  String _etiquetaCampoIndustrial(String id) {
+    return switch (id) {
+      'personas_atrapadas' => '¿Hay personas atrapadas?',
+      'personas_lesionadas' => '¿Hay personas lesionadas?',
+      'cantidad_personas_atrapadas' =>
+        'Número aproximado de personas atrapadas',
+      'cantidad_personas_lesionadas' =>
+        'Número aproximado de personas lesionadas',
+      'cantidad_personas_atrapadas_desconocida' =>
+        'Cantidad de personas atrapadas desconocida',
+      'cantidad_personas_lesionadas_desconocida' =>
+        'Cantidad de personas lesionadas desconocida',
+      'materiales_peligrosos' =>
+        '¿Hay cilindros, tanques o materiales peligrosos?',
+      'sustancias_peligrosas' =>
+        '¿Qué materiales o sustancias están involucrados?',
+      'ubicacion_materiales_peligrosos' => '¿En qué área se encuentran?',
+      'observaciones_adicionales' => 'Observaciones adicionales',
+      _ => id,
+    };
+  }
+
   @override
   Widget build(BuildContext context) {
     final camposCategoria =
@@ -201,6 +223,35 @@ class _TarjetaReporte extends StatelessWidget {
                 campo.etiqueta,
                 _datoOpcional(reporte.camposFormulario[campo.id]),
               ),
+            if (reporte.categoria == 'INCENDIO' &&
+                reporte.subcategoria == 'Industrial') ...[
+              if (reporte.camposFormulario.containsKey(
+                'instalacion_especificacion',
+              ))
+                MapEntry(
+                  'Especifique el tipo de instalación',
+                  _datoOpcional(
+                    reporte.camposFormulario['instalacion_especificacion'],
+                  ),
+                ),
+              for (final campo in [
+                'personas_atrapadas',
+                'personas_lesionadas',
+                'cantidad_personas_atrapadas',
+                'cantidad_personas_lesionadas',
+                'cantidad_personas_atrapadas_desconocida',
+                'cantidad_personas_lesionadas_desconocida',
+                'materiales_peligrosos',
+                'sustancias_peligrosas',
+                'ubicacion_materiales_peligrosos',
+                'observaciones_adicionales',
+              ])
+                if (reporte.camposFormulario.containsKey(campo))
+                  MapEntry(
+                    _etiquetaCampoIndustrial(campo),
+                    _datoOpcional(reporte.camposFormulario[campo]),
+                  ),
+            ],
           ],
         ),
         _TarjetaSeccionReporte(
@@ -225,8 +276,8 @@ class _TarjetaReporte extends StatelessWidget {
           titulo: 'Despacho',
           datos: [
             MapEntry('Unidades', _datoOpcional(reporte.unidadesTexto)),
-            MapEntry('Prioridad', _datoOpcional(reporte.prioridad)),
-            MapEntry('Estado', _datoOpcional(reporte.estado)),
+            MapEntry('Prioridad', _datoOpcional(reporte.prioridad.etiqueta)),
+            MapEntry('Estado', _datoOpcional(reporte.estado.etiqueta)),
           ],
         ),
         _TarjetaSeccionReporte(

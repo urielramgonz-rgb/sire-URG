@@ -394,12 +394,12 @@ class _SelectorPrioridad extends StatelessWidget {
     required this.alSeleccionar,
   });
 
-  final String prioridadActual;
-  final ValueChanged<String> alSeleccionar;
+  final PrioridadServicio prioridadActual;
+  final ValueChanged<PrioridadServicio> alSeleccionar;
 
   @override
   Widget build(BuildContext context) {
-    const opciones = ['Baja', 'Media', 'Alta'];
+    const opciones = PrioridadServicio.values;
     return ClipRRect(
       borderRadius: BorderRadius.circular(10),
       child: Container(
@@ -418,7 +418,7 @@ class _SelectorPrioridad extends StatelessWidget {
                     alignment: Alignment.center,
                     color: _obtenerColorFondo(opcion),
                     child: Text(
-                      opcion,
+                      opcion.etiqueta,
                       style: TextStyle(
                         fontSize: 17,
                         fontWeight: opcion == prioridadActual
@@ -438,17 +438,15 @@ class _SelectorPrioridad extends StatelessWidget {
     );
   }
 
-  Color _obtenerColorFondo(String opcion) {
+  Color _obtenerColorFondo(PrioridadServicio opcion) {
     if (opcion != prioridadActual) return Colors.white;
     switch (opcion) {
-      case 'Baja':
+      case PrioridadServicio.baja:
         return ColoresApp.verde;
-      case 'Media':
+      case PrioridadServicio.media:
         return ColoresApp.ambar;
-      case 'Alta':
+      case PrioridadServicio.alta:
         return ColoresApp.rojo;
-      default:
-        return Colors.white;
     }
   }
 }

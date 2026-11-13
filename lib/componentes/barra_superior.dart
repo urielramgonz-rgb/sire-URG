@@ -18,7 +18,10 @@ class BarraSuperiorSire extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      constraints: const BoxConstraints(minHeight: 68, minWidth: double.infinity),
+      constraints: const BoxConstraints(
+        minHeight: 68,
+        minWidth: double.infinity,
+      ),
       color: ColoresApp.azulMarino,
       padding: EdgeInsets.fromLTRB(mostrarAtras ? 4 : 24, 10, 16, 10),
       child: Row(
@@ -56,7 +59,11 @@ class BotonBarraSuperior extends StatelessWidget {
   final String etiqueta;
   final VoidCallback alPresionar;
 
-  const BotonBarraSuperior({super.key, required this.etiqueta, required this.alPresionar});
+  const BotonBarraSuperior({
+    super.key,
+    required this.etiqueta,
+    required this.alPresionar,
+  });
 
   @override
   Widget build(BuildContext context) {

@@ -6,8 +6,11 @@ import 'package:flutter/services.dart';
 import '../componentes/barra_superior.dart';
 import '../componentes/widgets_comunes.dart';
 import '../componentes/widgets_formulario.dart';
+import '../componentes/seccion_informacion_personas.dart';
+import '../datos/autenticacion.dart';
 import '../datos/repositorio_reportes.dart';
 import '../modelos/configuracion_campos_alerta.dart';
+import '../modelos/enums.dart';
 import '../modelos/reporte_servicio.dart';
 import '../modelos/tripulacion_unidad.dart';
 import '../tema/colores_app.dart';
@@ -51,7 +54,7 @@ class _PantallaNuevaAlertaState extends State<PantallaNuevaAlerta> {
   final Map<String, TripulacionUnidad> _tripulacionesPorUnidad = {};
   String? _unidadActiva;
 
-  String _prioridadSeleccionada = 'Alta';
+  PrioridadServicio _prioridadSeleccionada = PrioridadServicio.alta;
   String? _tipoSolicitante;
   String? _categoriaSeleccionada;
   String? _subcategoriaSeleccionada;
@@ -468,6 +471,7 @@ class _PantallaNuevaAlertaState extends State<PantallaNuevaAlerta> {
     required List<String> opciones,
     required bool requerido,
     FormFieldValidator<String>? validator,
+    ValueChanged<String?>? alCambiar,
   }) {
     return _campoConEtiqueta(
       etiqueta,
@@ -490,6 +494,7 @@ class _PantallaNuevaAlertaState extends State<PantallaNuevaAlerta> {
         onChanged: (valor) {
           if (valor == null) return;
           setState(() => _selecciones[id] = valor);
+          alCambiar?.call(valor);
         },
       ),
       requerido: requerido,
@@ -797,13 +802,50 @@ class _PantallaNuevaAlertaState extends State<PantallaNuevaAlerta> {
     final subcategoria = _subcategoriaSeleccionada!;
     final configuracion =
         ConfiguracionCamposAlerta.porCategoria[categoria]![subcategoria]!;
-    final camposFormulario = {
+    final camposFormulario = <String, String>{
       for (final campo in configuracion)
         campo.id: _valorCampo(
           campo,
           _idCampoEmergencia(categoria, subcategoria, campo.id),
         ),
     };
+    if (categoria == 'INCENDIO' && subcategoria == 'Industrial') {
+      String id(String campo) =>
+          _idCampoEmergencia('INCENDIO', 'Industrial', campo);
+      final instalacion = _selecciones[id('instalacion')];
+      if (instalacion == 'Otro') {
+        camposFormulario['instalacion_especificacion'] = _valor(
+          id('instalacion_especificacion'),
+        );
+      }
+      for (final bloque in ['personas_atrapadas', 'personas_lesionadas']) {
+        final respuesta = _selecciones[id(bloque)] ?? 'Desconocido';
+        camposFormulario[bloque] = respuesta;
+        if (respuesta == 'Sí') {
+          final cantidadDesconocida =
+              _selecciones['${id(bloque)}:cantidad_desconocida'] == 'Sí';
+          camposFormulario['cantidad_$bloque'] = cantidadDesconocida
+              ? 'Cantidad desconocida'
+              : _valor('${id(bloque)}:cantidad');
+          camposFormulario['cantidad_${bloque}_desconocida'] =
+              cantidadDesconocida ? 'Sí' : 'No';
+        }
+      }
+      final hayMaterialesPeligrosos =
+          _selecciones[id('materiales_peligrosos')] ?? 'Desconocido';
+      camposFormulario['materiales_peligrosos'] = hayMaterialesPeligrosos;
+      if (hayMaterialesPeligrosos == 'Sí') {
+        camposFormulario['sustancias_peligrosas'] = _valor(
+          id('sustancias_peligrosas'),
+        );
+        camposFormulario['ubicacion_materiales_peligrosos'] = _valor(
+          id('ubicacion_materiales_peligrosos'),
+        );
+      }
+      camposFormulario['observaciones_adicionales'] = _valor(
+        id('observaciones_adicionales'),
+      );
+    }
     final detallesUbicacion = <String, String>{
       'Colonia': _valor('ubicacion:colonia').ifEmpty('No especificado'),
       'Calle': _valor('ubicacion:calle').ifEmpty('No especificado'),
@@ -873,45 +915,7 @@ class _PantallaNuevaAlertaState extends State<PantallaNuevaAlerta> {
       prioridad: _prioridadSeleccionada,
       personal: personal,
       apoyoExterno: 'No especificado',
-      estado: 'Asignada',
-      cronologia: const [
-        EventoCronologia(
-          titulo: 'Reporte enviado',
-          hora: '15:00',
-          completado: true,
-          detalle: 'Central',
-        ),
-        EventoCronologia(
-          titulo: 'Salida de base',
-          hora: '--:--',
-          completado: false,
-          detalle: 'Pendiente',
-        ),
-        EventoCronologia(
-          titulo: 'Llegada al lugar',
-          hora: '--:--',
-          completado: false,
-          detalle: 'Pendiente',
-        ),
-        EventoCronologia(
-          titulo: 'Inicio de atención',
-          hora: '--:--',
-          completado: false,
-          detalle: 'Pendiente',
-        ),
-        EventoCronologia(
-          titulo: 'Salida del lugar / traslado',
-          hora: '--:--',
-          completado: false,
-          detalle: 'Pendiente',
-        ),
-        EventoCronologia(
-          titulo: 'Fin del servicio',
-          hora: '--:--',
-          completado: false,
-          detalle: 'Pendiente',
-        ),
-      ],
+      cronologia: EventoCronologia.lineaInicial(DateTime.now()),
     );
   }
 
@@ -1018,7 +1022,10 @@ class _PantallaNuevaAlertaState extends State<PantallaNuevaAlerta> {
         return;
       }
       final reporte = _crearReporteDesdeFormulario();
-      repositorio.agregar(reporte);
+      repositorio.agregar(
+        reporte,
+        creadoPor: Autenticacion.instancia.usuarioActual,
+      );
       Navigator.of(context).push(
         MaterialPageRoute(builder: (_) => PantallaBitacora(reporte: reporte)),
       );

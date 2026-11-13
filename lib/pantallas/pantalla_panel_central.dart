@@ -4,7 +4,9 @@ import '../tema/colores_app.dart';
 import '../componentes/widgets_comunes.dart';
 import '../componentes/widgets_formulario.dart';
 import '../componentes/barra_superior.dart';
+import '../datos/autenticacion.dart';
 import '../datos/repositorio_reportes.dart';
+import '../modelos/enums.dart';
 import '../modelos/reporte_servicio.dart';
 import 'pantalla_nueva_alerta.dart';
 import 'pantalla_sincronizacion.dart';
@@ -26,6 +28,11 @@ class PantallaPanelCentral extends StatelessWidget {
       animation: repositorio,
       builder: (context, _) {
         final reportes = repositorio.reportesParaCentral;
+        final activos = reportes.where((reporte) => !reporte.cerrado).toList();
+        final finalizados = reportes
+            .where((reporte) => reporte.cerrado)
+            .toList();
+        final usuario = Autenticacion.instancia.usuarioActual;
         return Scaffold(
           backgroundColor: ColoresApp.fondo,
           body: SafeArea(
@@ -53,9 +60,9 @@ class PantallaPanelCentral extends StatelessWidget {
                   child: ListView(
                     padding: const EdgeInsets.all(20),
                     children: [
-                      const Text(
-                        'Radio-operador · Central SMA',
-                        style: TextStyle(
+                      Text(
+                        '${usuario?.nombre ?? 'Radio-operador'} · Central SMA',
+                        style: const TextStyle(
                           fontSize: 15,
                           fontWeight: FontWeight.bold,
                           color: ColoresApp.tinta,
@@ -74,7 +81,12 @@ class PantallaPanelCentral extends StatelessWidget {
                         ],
                       ),
                       const SizedBox(height: 12),
-                      for (final reporte in reportes) ...[
+                      if (activos.isEmpty)
+                        const Text(
+                          'No hay servicios activos.',
+                          style: TextStyle(color: ColoresApp.atenuado),
+                        ),
+                      for (final reporte in activos) ...[
                         if (reporte.folio == '0154')
                           _TarjetaServicioCentral(
                             reporte: reporte,
@@ -97,6 +109,26 @@ class PantallaPanelCentral extends StatelessWidget {
                             ),
                           ),
                         const SizedBox(height: 10),
+                      ],
+                      if (finalizados.isNotEmpty) ...[
+                        const SizedBox(height: 10),
+                        const EtiquetaSeccion('FINALIZADOS'),
+                        const SizedBox(height: 12),
+                        for (final reporte in finalizados) ...[
+                          _FilaServicio(
+                            punto: _colorEstado(reporte.estado),
+                            titulo:
+                                '${reporte.folioVisible} · ${reporte.subcategoria}',
+                            subtitulo:
+                                '${reporte.categoria} · ${reporte.unidadesTexto} · ${reporte.estado}',
+                            colorSubtitulo: _colorEstado(reporte.estado),
+                            alPresionar: () => _abrir(
+                              context,
+                              PantallaBitacora(reporte: reporte),
+                            ),
+                          ),
+                          const SizedBox(height: 10),
+                        ],
                       ],
                       const SizedBox(height: 20),
                       _BotonNuevaAlerta(
@@ -121,14 +153,17 @@ class PantallaPanelCentral extends StatelessWidget {
   }
 }
 
-Color _colorEstado(String estado) {
+Color _colorEstado(EstadoServicio estado) {
   switch (estado) {
-    case 'En atención':
-    case 'En escena':
+    case EstadoServicio.enAtencion:
+    case EstadoServicio.enEscena:
+    case EstadoServicio.enTraslado:
       return ColoresApp.verde;
-    case 'En camino':
+    case EstadoServicio.enCamino:
       return ColoresApp.azul;
-    default:
+    case EstadoServicio.finalizado:
+      return ColoresApp.atenuado;
+    case EstadoServicio.asignada:
       return ColoresApp.ambarOscuro;
   }
 }

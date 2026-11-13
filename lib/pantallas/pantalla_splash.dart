@@ -9,9 +9,9 @@ class PantallaSplash extends StatelessWidget {
   const PantallaSplash({super.key});
 
   void _continuar(BuildContext context) {
-    Navigator.of(context).pushReplacement(
-      MaterialPageRoute(builder: (_) => const PantallaLogin()),
-    );
+    Navigator.of(
+      context,
+    ).pushReplacement(MaterialPageRoute(builder: (_) => const PantallaLogin()));
   }
 
   @override

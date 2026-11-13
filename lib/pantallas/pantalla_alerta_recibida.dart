@@ -28,7 +28,7 @@ class PantallaAlertaRecibida extends StatelessWidget {
               color: ColoresApp.rojo,
               padding: const EdgeInsets.symmetric(vertical: 18),
               child: Text(
-                reporte.estado.toUpperCase(),
+                reporte.estado.etiqueta.toUpperCase(),
                 textAlign: TextAlign.center,
                 style: const TextStyle(
                   color: Colors.white,
@@ -52,7 +52,7 @@ class PantallaAlertaRecibida extends StatelessWidget {
                     _CampoInfo('Ubicación', reporte.ubicacion),
                     _CampoInfo('Unidad asignada', reporte.unidadesTexto),
                     _CampoInfo('Folio C4', reporte.folioVisible),
-                    _CampoInfo('Estado', reporte.estado),
+                    _CampoInfo('Estado', reporte.estado.etiqueta),
                     const SizedBox(height: 12),
                     CajaInfo(
                       'Prioridad ${reporte.prioridad} · servicio en curso',

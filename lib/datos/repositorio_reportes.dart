@@ -1,13 +1,28 @@
 import 'package:flutter/foundation.dart';
 
+import '../modelos/entrada_bitacora.dart';
+import '../modelos/enums.dart';
 import '../modelos/reporte_servicio.dart';
+import '../modelos/usuario.dart';
+import 'repositorio_bitacora.dart';
 
 class ReportesRepositorio extends ChangeNotifier {
-  ReportesRepositorio._() : _reportes = _reportesIniciales();
+  ReportesRepositorio._()
+    : _reportes = _reportesIniciales(),
+      _bitacora = BitacoraRepositorio.instancia;
+
+  /// Instancia aislada para pruebas, con los reportes y la bitácora dados.
+  @visibleForTesting
+  ReportesRepositorio.paraPruebas({
+    required List<ReporteServicio> reportes,
+    required BitacoraRepositorio bitacora,
+  }) : _reportes = List.of(reportes),
+       _bitacora = bitacora;
 
   static final ReportesRepositorio instancia = ReportesRepositorio._();
 
   final List<ReporteServicio> _reportes;
+  final BitacoraRepositorio _bitacora;
   final Map<String, DatosServicioReporte> _versionesPublicadas = {};
   int _siguienteId = 1;
 
@@ -27,6 +42,14 @@ class ReportesRepositorio extends ChangeNotifier {
     return null;
   }
 
+  /// Versión que ve Central: incluye los datos publicados por Campo.
+  ReporteServicio? porIdParaCentral(String id) {
+    final reporte = porId(id);
+    if (reporte == null) return null;
+    final publicada = _versionesPublicadas[id];
+    return publicada == null ? reporte : reporte.conDatosServicio(publicada);
+  }
+
   List<ReporteServicio> asignadosA(String unidad) => List.unmodifiable(
     _reportes
         .where((reporte) => reporte.unidadesAsignadas.contains(unidad))
@@ -43,11 +66,73 @@ class ReportesRepositorio extends ChangeNotifier {
     );
   }
 
-  bool agregar(ReporteServicio reporte) {
+  bool agregar(ReporteServicio reporte, {Usuario? creadoPor}) {
     if (contieneFolio(reporte.folio)) return false;
     _reportes.add(reporte);
+    _bitacora.registrar(
+      usuario: creadoPor?.nombre ?? 'Sistema',
+      accion: AccionBitacora.altaServicio,
+      detalle: '${reporte.folioVisible} · ${reporte.categoria}',
+      servicioId: reporte.id,
+    );
     notifyListeners();
     return true;
+  }
+
+  /// Registra un tiempo del servicio con la hora real del dispositivo.
+  ///
+  /// Reglas: solo personal de Campo activo con la unidad asignada; los
+  /// tiempos se marcan en orden; cada uno se marca una sola vez; un servicio
+  /// finalizado ya no se modifica. Devuelve null si se registró o el mensaje
+  /// con el motivo del rechazo.
+  String? marcarTiempo({
+    required String id,
+    required EstatusServicio estatus,
+    required Usuario usuario,
+    DateTime? momento,
+  }) {
+    final indice = _reportes.indexWhere((reporte) => reporte.id == id);
+    if (indice < 0) return 'No se encontró el servicio.';
+    final reporte = _reportes[indice];
+
+    if (!usuario.canTakeService() ||
+        !reporte.unidadesAsignadas.contains(usuario.unidad)) {
+      return 'No tienes permiso para registrar tiempos de este servicio.';
+    }
+    if (reporte.cerrado) {
+      return 'El servicio ya está finalizado. Los tiempos son de solo consulta.';
+    }
+    final siguiente = reporte.siguientePendiente;
+    if (siguiente == null || siguiente.estatus != estatus) {
+      return 'Registra los tiempos en orden. '
+          'Sigue: ${siguiente?.titulo ?? 'ninguno'}.';
+    }
+
+    final ahora = momento ?? DateTime.now();
+    final previa = reporte.ultimaMarca;
+    if (previa != null && ahora.isBefore(previa)) {
+      return 'La hora del dispositivo es anterior al último tiempo '
+          'registrado (${formatearHora(previa)}). Revisa la hora del teléfono.';
+    }
+
+    final nueva = [
+      for (final evento in reporte.cronologia)
+        if (evento.estatus == estatus)
+          evento.marcar(ahora, 'Unidad ${usuario.unidad}')
+        else
+          evento,
+    ];
+    _reportes[indice] = reporte.conCronologia(nueva);
+
+    _bitacora.registrar(
+      usuario: usuario.nombre,
+      accion: AccionBitacora.tiempoRegistrado,
+      detalle: '${estatus.etiqueta} · ${formatearHora(ahora)}',
+      servicioId: reporte.id,
+      momento: ahora,
+    );
+    notifyListeners();
+    return null;
   }
 
   void actualizarDatosServicio({
@@ -69,12 +154,45 @@ class ReportesRepositorio extends ChangeNotifier {
     notifyListeners();
   }
 
-  bool publicarDatosServicio(String id) {
+  bool publicarDatosServicio(String id, {Usuario? usuario}) {
     final reporte = porId(id);
     if (reporte == null) return false;
     _versionesPublicadas[id] = reporte.datosServicio;
+    _bitacora.registrar(
+      usuario: usuario?.nombre ?? 'Campo',
+      accion: AccionBitacora.reporteEnviado,
+      detalle: reporte.folioVisible,
+      servicioId: id,
+    );
     notifyListeners();
     return true;
+  }
+
+  /// Arma una línea de tiempo de ejemplo. [haceMinutos] indica hace cuántos
+  /// minutos se registró cada estatus; los que faltan quedan pendientes.
+  static List<EventoCronologia> _linea(
+    String unidad,
+    Map<EstatusServicio, int> haceMinutos,
+  ) {
+    final ahora = DateTime.now();
+    final eventos = <EventoCronologia>[];
+    for (final estatus in EstatusServicio.values) {
+      final minutos = haceMinutos[estatus];
+      if (minutos == null) {
+        eventos.add(EventoCronologia(estatus: estatus));
+      } else {
+        eventos.add(
+          EventoCronologia(
+            estatus: estatus,
+            marcadoEn: ahora.subtract(Duration(minutes: minutos)),
+            detalle: estatus == EstatusServicio.alertaEnviada
+                ? 'Central'
+                : 'Unidad $unidad',
+          ),
+        );
+      }
+    }
+    return List.unmodifiable(eventos);
   }
 
   static List<ReporteServicio> _reportesIniciales() => [
@@ -105,7 +223,7 @@ class ReportesRepositorio extends ChangeNotifier {
         'Teléfono del reportante': 'No especificado',
       },
       unidadesAsignadas: const ['BYP01'],
-      eventosCampo: 'A las 14:47, BYP01 arribó al kilómetro 12 de la carretera SMA–Dolores. Se identificaron dos vehículos involucrados, un automóvil y una camioneta, con dos personas lesionadas. Se realizó una valoración inicial y se delimitó la zona de trabajo. No se reportaron personas prensadas ni derrame de combustible. El servicio continúa en atención.',
+      eventosCampo: 'BYP01 arribó al kilómetro 12 de la carretera SMA–Dolores. Se identificaron dos vehículos involucrados, un automóvil y una camioneta, con dos personas lesionadas. Se realizó una valoración inicial y se delimitó la zona de trabajo. No se reportaron personas prensadas ni derrame de combustible. El servicio continúa en atención.',
       corporacionesApoyo: const ['Cruz Roja'],
       estadoUnidadesApoyo: 'Confirmado',
       estadoTripulacionApoyo: 'Confirmada',
@@ -118,7 +236,7 @@ class ReportesRepositorio extends ChangeNotifier {
         ),
       ],
       cierreServicio: 'Pendiente. La atención continúa y aún no se ha registrado el resultado final.',
-      prioridad: 'Alta',
+      prioridad: PrioridadServicio.alta,
       personal: const [
         PersonalReporte(
           nombre: 'Andres Romo',
@@ -132,45 +250,12 @@ class ReportesRepositorio extends ChangeNotifier {
         ),
       ],
       apoyoExterno: 'Cruz Roja',
-      estado: 'En atención',
-      cronologia: [
-        EventoCronologia(
-          titulo: 'Reporte enviado',
-          hora: '14:32',
-          completado: true,
-          detalle: 'Central',
-        ),
-        EventoCronologia(
-          titulo: 'Salida de base',
-          hora: '14:34',
-          completado: true,
-          detalle: 'Unidad BYP01',
-        ),
-        EventoCronologia(
-          titulo: 'Llegada al lugar',
-          hora: '14:47',
-          completado: true,
-          detalle: 'Unidad BYP01',
-        ),
-        EventoCronologia(
-          titulo: 'Inicio de atención',
-          hora: '14:50',
-          completado: true,
-          detalle: 'Unidad BYP01',
-        ),
-        EventoCronologia(
-          titulo: 'Salida del lugar / traslado',
-          hora: '--:--',
-          completado: false,
-          detalle: 'Pendiente',
-        ),
-        EventoCronologia(
-          titulo: 'Fin del servicio',
-          hora: '--:--',
-          completado: false,
-          detalle: 'Pendiente',
-        ),
-      ],
+      cronologia: _linea('BYP01', const {
+        EstatusServicio.alertaEnviada: 60,
+        EstatusServicio.salidaBase: 58,
+        EstatusServicio.llegadaLugar: 45,
+        EstatusServicio.inicioAtencion: 42,
+      }),
     ),
     ReporteServicio(
       id: 'demo-0155',
@@ -204,7 +289,7 @@ class ReportesRepositorio extends ChangeNotifier {
       estadoUnidadesApoyo: 'Pendiente de información de Campo.',
       estadoTripulacionApoyo: 'Pendiente de información de Campo.',
       cierreServicio: 'Pendiente',
-      prioridad: 'Media',
+      prioridad: PrioridadServicio.media,
       personal: const [
         PersonalReporte(
           nombre: 'Andres Romo',
@@ -218,45 +303,10 @@ class ReportesRepositorio extends ChangeNotifier {
         ),
       ],
       apoyoExterno: 'No especificado',
-      estado: 'En camino',
-      cronologia: [
-        EventoCronologia(
-          titulo: 'Reporte enviado',
-          hora: '15:05',
-          completado: true,
-          detalle: 'Central',
-        ),
-        EventoCronologia(
-          titulo: 'Salida de base',
-          hora: '--:--',
-          completado: false,
-          detalle: 'Pendiente',
-        ),
-        EventoCronologia(
-          titulo: 'Llegada al lugar',
-          hora: '--:--',
-          completado: false,
-          detalle: 'Pendiente',
-        ),
-        EventoCronologia(
-          titulo: 'Inicio de atención',
-          hora: '--:--',
-          completado: false,
-          detalle: 'Pendiente',
-        ),
-        EventoCronologia(
-          titulo: 'Salida del lugar / traslado',
-          hora: '--:--',
-          completado: false,
-          detalle: 'Pendiente',
-        ),
-        EventoCronologia(
-          titulo: 'Fin del servicio',
-          hora: '--:--',
-          completado: false,
-          detalle: 'Pendiente',
-        ),
-      ],
+      cronologia: _linea('BYP02', const {
+        EstatusServicio.alertaEnviada: 12,
+        EstatusServicio.salidaBase: 9,
+      }),
     ),
     ReporteServicio(
       id: 'demo-0156',
@@ -290,7 +340,7 @@ class ReportesRepositorio extends ChangeNotifier {
       estadoUnidadesApoyo: 'No hay unidades externas confirmadas.',
       estadoTripulacionApoyo: 'No hay tripulantes externos confirmados.',
       cierreServicio: 'Pendiente',
-      prioridad: 'Alta',
+      prioridad: PrioridadServicio.alta,
       personal: const [
         PersonalReporte(
           nombre: 'Andres Romo',
@@ -304,45 +354,7 @@ class ReportesRepositorio extends ChangeNotifier {
         ),
       ],
       apoyoExterno: 'No especificado',
-      estado: 'Asignada',
-      cronologia: [
-        EventoCronologia(
-          titulo: 'Reporte enviado',
-          hora: '15:10',
-          completado: true,
-          detalle: 'Central',
-        ),
-        EventoCronologia(
-          titulo: 'Salida de base',
-          hora: '--:--',
-          completado: false,
-          detalle: 'Pendiente',
-        ),
-        EventoCronologia(
-          titulo: 'Llegada al lugar',
-          hora: '--:--',
-          completado: false,
-          detalle: 'Pendiente',
-        ),
-        EventoCronologia(
-          titulo: 'Inicio de atención',
-          hora: '--:--',
-          completado: false,
-          detalle: 'Pendiente',
-        ),
-        EventoCronologia(
-          titulo: 'Salida del lugar / traslado',
-          hora: '--:--',
-          completado: false,
-          detalle: 'Pendiente',
-        ),
-        EventoCronologia(
-          titulo: 'Fin del servicio',
-          hora: '--:--',
-          completado: false,
-          detalle: 'Pendiente',
-        ),
-      ],
+      cronologia: _linea('BYP04', const {EstatusServicio.alertaEnviada: 7}),
     ),
     ReporteServicio(
       id: 'demo-0157',
@@ -379,12 +391,12 @@ class ReportesRepositorio extends ChangeNotifier {
         'Teléfono del reportante': 'No especificado',
       },
       unidadesAsignadas: const ['BYP05'],
-      eventosCampo: 'BYP05 arribó al lugar a las 15:32. Se encuentra en reconocimiento inicial del área reportada por derrame de diésel. El inicio de atención y el resultado del servicio aún no han sido registrados.',
+      eventosCampo: 'BYP05 arribó al lugar. Se encuentra en reconocimiento inicial del área reportada por derrame de diésel. El inicio de atención y el resultado del servicio aún no han sido registrados.',
       estadoCorporacionesApoyo: 'No hay corporaciones externas confirmadas.',
       estadoUnidadesApoyo: 'No hay unidades externas confirmadas.',
       estadoTripulacionApoyo: 'No hay tripulantes externos confirmados.',
       cierreServicio: 'Pendiente',
-      prioridad: 'Alta',
+      prioridad: PrioridadServicio.alta,
       personal: const [
         PersonalReporte(
           nombre: 'Andres Romo',
@@ -398,45 +410,11 @@ class ReportesRepositorio extends ChangeNotifier {
         ),
       ],
       apoyoExterno: 'No especificado',
-      estado: 'En escena',
-      cronologia: [
-        EventoCronologia(
-          titulo: 'Reporte enviado',
-          hora: '15:15',
-          completado: true,
-          detalle: 'Central',
-        ),
-        EventoCronologia(
-          titulo: 'Salida de base',
-          hora: '--:--',
-          completado: false,
-          detalle: 'Pendiente',
-        ),
-        EventoCronologia(
-          titulo: 'Llegada al lugar',
-          hora: '15:32',
-          completado: true,
-          detalle: 'Unidad BYP05',
-        ),
-        EventoCronologia(
-          titulo: 'Inicio de atención',
-          hora: '--:--',
-          completado: false,
-          detalle: 'Pendiente',
-        ),
-        EventoCronologia(
-          titulo: 'Salida del lugar / traslado',
-          hora: '--:--',
-          completado: false,
-          detalle: 'Pendiente',
-        ),
-        EventoCronologia(
-          titulo: 'Fin del servicio',
-          hora: '--:--',
-          completado: false,
-          detalle: 'Pendiente',
-        ),
-      ],
+      cronologia: _linea('BYP05', const {
+        EstatusServicio.alertaEnviada: 20,
+        EstatusServicio.salidaBase: 16,
+        EstatusServicio.llegadaLugar: 5,
+      }),
     ),
   ];
 }
